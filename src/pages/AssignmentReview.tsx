@@ -10,8 +10,7 @@ import {
   validateShoresh, 
   validateBinyan, 
   validateZman, 
-  validateGuf,
-  calculateSentenceScore 
+  validateGuf
 } from '@/utils/validation';
 
 interface SentenceAnswer {
@@ -204,46 +203,59 @@ export default function AssignmentReview() {
 
       if (!submission) return;
 
-      // Calculate scores for all answers
-      let totalScore = 0;
+      // Calculate scores - count all correct fields
+      let totalCorrectFields = 0;
+      let totalFields = 0;
+      const answerUpdates = [];
 
       for (const answer of answers) {
         const shoreshCorrect = validateShoresh(answer.student_shoresh || '', answer.correct_shoresh);
         const binyanCorrect = answer.correct_binyan 
           ? validateBinyan(answer.student_binyan || '', answer.correct_binyan)
-          : true; // If no binyan required, it's automatically correct
+          : true;
         const zmanCorrect = validateZman(answer.student_zman || '', answer.correct_zman);
         const gufCorrect = validateGuf(answer.student_guf || '', answer.correct_guf);
         
         const hasBinyan = answer.correct_binyan !== null;
         const hasGuf = answer.correct_guf !== null;
         
-        // Calculate points based on number of fields
-        let points = 0;
-        if (!hasBinyan && !hasGuf) {
-          // 2-field task: shoresh + zman (for 100 total: 16 sentences × 6.25 = 100)
-          const correctCount = (shoreshCorrect ? 1 : 0) + (zmanCorrect ? 1 : 0);
-          points = correctCount * 3.125; // 6.25 points for both correct, 3.125 for one correct
-        } else {
-          // 3 or 4-field task: use existing logic
-          points = calculateSentenceScore(shoreshCorrect, binyanCorrect, zmanCorrect, gufCorrect, hasGuf);
-        }
+        // Count fields for this sentence
+        const fieldsInSentence = 2 + (hasBinyan ? 1 : 0) + (hasGuf ? 1 : 0);
+        totalFields += fieldsInSentence;
         
-        totalScore += points;
+        // Count correct fields
+        if (shoreshCorrect) totalCorrectFields++;
+        if (hasBinyan && binyanCorrect) totalCorrectFields++;
+        if (zmanCorrect) totalCorrectFields++;
+        if (hasGuf && gufCorrect) totalCorrectFields++;
+        
+        // Store validation results for this answer
+        answerUpdates.push({
+          sentence_id: answer.sentence_id,
+          shoresh_correct: shoreshCorrect,
+          binyan_correct: hasBinyan ? binyanCorrect : null,
+          zman_correct: zmanCorrect,
+          guf_correct: hasGuf ? gufCorrect : null
+        });
 
-        // Update answer with validation results
+      }
+
+      // Calculate final score out of 100 with standard rounding
+      const totalScore = Math.round((totalCorrectFields / totalFields) * 100);
+
+      // Update all answers with validation results
+      for (const update of answerUpdates) {
         await supabase
           .from('student_answers')
           .update({
-            shoresh_correct: shoreshCorrect,
-            binyan_correct: hasBinyan ? binyanCorrect : null,
-            zman_correct: zmanCorrect,
-            guf_correct: hasGuf ? gufCorrect : null,
-            points_earned: points,
+            shoresh_correct: update.shoresh_correct,
+            binyan_correct: update.binyan_correct,
+            zman_correct: update.zman_correct,
+            guf_correct: update.guf_correct,
             updated_at: new Date().toISOString()
           })
           .eq('submission_id', submission.id)
-          .eq('sentence_id', answer.sentence_id);
+          .eq('sentence_id', update.sentence_id);
       }
 
       // Update submission status

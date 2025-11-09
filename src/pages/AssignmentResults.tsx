@@ -116,29 +116,8 @@ export default function AssignmentResults() {
         .eq('assignment_id', assignmentId)
         .order('sentence_number');
 
-      // Get assignment details and calculate max score dynamically
-      const { data: assignment } = await supabase
-        .from('assignments')
-        .select('total_sentences')
-        .eq('id', assignmentId)
-        .single();
-
-      // Calculate max score based on sentence types
-      // Check first sentence to determine scoring type
-      const firstSentence = sentences && sentences.length > 0 ? sentences[0] : null;
-      const hasBinyan = firstSentence && firstSentence.correct_binyan !== null;
-      const hasGuf = firstSentence && firstSentence.correct_guf !== null;
-      
-      let calculatedMaxScore = 0;
-      if (!hasBinyan && !hasGuf) {
-        // 2-field task (shoresh + zman): 6.25 points per sentence for 100 total
-        calculatedMaxScore = (assignment?.total_sentences || 0) * 6.25;
-      } else {
-        // 3 or 4-field task: 10 points per sentence
-        calculatedMaxScore = (assignment?.total_sentences || 0) * 10;
-      }
-      
-      setMaxScore(calculatedMaxScore);
+      // Max score is always 100
+      setMaxScore(100);
 
       // Get results for all sentences
 
@@ -168,7 +147,7 @@ export default function AssignmentResults() {
             binyan_correct: answer?.binyan_correct || false,
             zman_correct: answer?.zman_correct || false,
             guf_correct: answer?.guf_correct || false,
-            points_earned: answer?.points_earned || 0
+            points_earned: 0 // Not shown per sentence anymore
           };
         })
       );
@@ -197,74 +176,51 @@ export default function AssignmentResults() {
 
   const approveAnswer = async (answerId: string, field: 'shoresh' | 'binyan' | 'zman' | 'guf') => {
     try {
-      // Get current answer data
-      const { data: currentAnswer } = await supabase
-        .from('student_answers')
-        .select('*')
-        .eq('id', answerId)
-        .single();
-
-      if (!currentAnswer) {
-        toast.error('לא נמצאה תשובה');
-        return;
-      }
-
-      // Calculate new points
-      const fieldsCorrect = {
-        shoresh_correct: currentAnswer.shoresh_correct,
-        binyan_correct: currentAnswer.binyan_correct,
-        zman_correct: currentAnswer.zman_correct,
-        guf_correct: currentAnswer.guf_correct
-      };
-
       // Update the specific field
-      fieldsCorrect[`${field}_correct`] = true;
-
-      // Get the sentence to determine how many fields are required
-      const { data: sentenceData } = await supabase
-        .from('assignment_sentences')
-        .select('correct_binyan, correct_guf')
-        .eq('id', currentAnswer.sentence_id)
-        .single();
-
-      const hasBinyan = sentenceData?.correct_binyan !== null;
-      const hasGuf = sentenceData?.correct_guf !== null;
-
-      // Count correct fields (only count fields that are required)
-      let correctCount = 0;
-      if (fieldsCorrect.shoresh_correct) correctCount++;
-      if (hasBinyan && fieldsCorrect.binyan_correct) correctCount++;
-      if (fieldsCorrect.zman_correct) correctCount++;
-      if (hasGuf && fieldsCorrect.guf_correct) correctCount++;
-
-      // Calculate points based on task type
-      let newPoints = 0;
-      if (!hasBinyan && !hasGuf) {
-        // 2-field task: 6.25 for both correct, 3.125 for one correct
-        newPoints = correctCount * 3.125;
-      } else {
-        // 3 or 4-field task: 2.5 points per correct field
-        newPoints = correctCount * 2.5;
-      }
-
-      // Update the answer
       const { error: updateError } = await supabase
         .from('student_answers')
         .update({
-          [`${field}_correct`]: true,
-          points_earned: newPoints
+          [`${field}_correct`]: true
         })
         .eq('id', answerId);
 
       if (updateError) throw updateError;
 
-      // Recalculate total score for submission
+      // Recalculate total score for entire submission
       const { data: allAnswers } = await supabase
         .from('student_answers')
-        .select('points_earned')
+        .select('*, sentence_id')
         .eq('submission_id', submissionIdFromQuery);
 
-      const newTotalScore = allAnswers?.reduce((sum, a) => sum + (a.points_earned || 0), 0) || 0;
+      if (!allAnswers) return;
+
+      // Count total correct fields and total fields
+      let totalCorrectFields = 0;
+      let totalFields = 0;
+
+      for (const answer of allAnswers) {
+        // Get sentence info to know which fields are required
+        const { data: sentence } = await supabase
+          .from('assignment_sentences')
+          .select('correct_binyan, correct_guf')
+          .eq('id', answer.sentence_id)
+          .single();
+
+        const hasBinyan = sentence?.correct_binyan !== null;
+        const hasGuf = sentence?.correct_guf !== null;
+
+        // Count fields
+        totalFields += 2 + (hasBinyan ? 1 : 0) + (hasGuf ? 1 : 0);
+
+        // Count correct fields
+        if (answer.shoresh_correct) totalCorrectFields++;
+        if (hasBinyan && answer.binyan_correct) totalCorrectFields++;
+        if (answer.zman_correct) totalCorrectFields++;
+        if (hasGuf && answer.guf_correct) totalCorrectFields++;
+      }
+
+      // Calculate final score out of 100 with standard rounding
+      const newTotalScore = Math.round((totalCorrectFields / totalFields) * 100);
 
       // Update submission total score
       const { error: submissionError } = await supabase
@@ -275,7 +231,7 @@ export default function AssignmentResults() {
       if (submissionError) throw submissionError;
 
       toast.success('התשובה אושרה והציון עודכן');
-      loadResults(); // Reload to show updated data
+      loadResults();
     } catch (error) {
       console.error('Error approving answer:', error);
       toast.error('שגיאה באישור התשובה');
@@ -336,9 +292,12 @@ export default function AssignmentResults() {
                       מילה לניתוח: <span className="font-bold text-primary">{result.analyzed_word}</span>
                     </p>
                   </div>
-                  <Badge className={getScoreBadgeColor(result.points_earned)}>
-                    {result.points_earned.toFixed(2)}/{result.correct_binyan === null && result.correct_guf === null ? '6.25' : '10'}
-                  </Badge>
+                  <div className="flex gap-1">
+                    {result.shoresh_correct && <CheckCircle2 className="w-4 h-4 text-success" />}
+                    {result.correct_binyan && result.binyan_correct && <CheckCircle2 className="w-4 h-4 text-success" />}
+                    {result.zman_correct && <CheckCircle2 className="w-4 h-4 text-success" />}
+                    {result.correct_guf && result.guf_correct && <CheckCircle2 className="w-4 h-4 text-success" />}
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-4 border-t">
@@ -353,13 +312,13 @@ export default function AssignmentResults() {
                     </div>
                     <div className="text-sm pr-6 space-y-1">
                       {result.shoresh_correct ? (
-                        <span className="text-success">✓ {result.student_shoresh} (2.5 נק')</span>
+                        <span className="text-success">✓ {result.student_shoresh}</span>
                       ) : (
                         <>
                           <div>
                             <span className="text-destructive">✗ שלך: {result.student_shoresh}</span>
                             <br />
-                            <span className="text-muted-foreground">נכון: {result.correct_shoresh} (0 נק')</span>
+                            <span className="text-muted-foreground">נכון: {result.correct_shoresh}</span>
                           </div>
                           {isTeacherView && (
                             <Button
@@ -388,13 +347,13 @@ export default function AssignmentResults() {
                     </div>
                     <div className="text-sm pr-6 space-y-1">
                       {result.binyan_correct ? (
-                        <span className="text-success">✓ {result.student_binyan} (2.5 נק')</span>
+                        <span className="text-success">✓ {result.student_binyan}</span>
                       ) : (
                         <>
                           <div>
                             <span className="text-destructive">✗ שלך: {result.student_binyan}</span>
                             <br />
-                            <span className="text-muted-foreground">נכון: {result.correct_binyan} (0 נק')</span>
+                            <span className="text-muted-foreground">נכון: {result.correct_binyan}</span>
                           </div>
                           {isTeacherView && (
                             <Button
@@ -423,13 +382,13 @@ export default function AssignmentResults() {
                     </div>
                     <div className="text-sm pr-6 space-y-1">
                       {result.zman_correct ? (
-                        <span className="text-success">✓ {result.student_zman} (2.5 נק')</span>
+                        <span className="text-success">✓ {result.student_zman}</span>
                       ) : (
                         <>
                           <div>
                             <span className="text-destructive">✗ שלך: {result.student_zman}</span>
                             <br />
-                            <span className="text-muted-foreground">נכון: {result.correct_zman} (0 נק')</span>
+                            <span className="text-muted-foreground">נכון: {result.correct_zman}</span>
                           </div>
                           {isTeacherView && (
                             <Button
@@ -458,13 +417,13 @@ export default function AssignmentResults() {
                     </div>
                     <div className="text-sm pr-6 space-y-1">
                       {result.guf_correct ? (
-                        <span className="text-success">✓ {result.student_guf} (2.5 נק')</span>
+                        <span className="text-success">✓ {result.student_guf}</span>
                       ) : (
                         <>
                           <div>
                             <span className="text-destructive">✗ שלך: {result.student_guf}</span>
                             <br />
-                            <span className="text-muted-foreground">נכון: {result.correct_guf} (0 נק')</span>
+                            <span className="text-muted-foreground">נכון: {result.correct_guf}</span>
                           </div>
                           {isTeacherView && (
                             <Button
