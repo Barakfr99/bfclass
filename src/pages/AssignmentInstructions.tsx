@@ -19,6 +19,17 @@ export default function AssignmentInstructions() {
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const formatTextWithBold = (text: string) => {
+    const parts = text.split(/(\*\*.*?\*\*)/g);
+    return parts.map((part, index) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        const boldText = part.slice(2, -2);
+        return <strong key={index}>{boldText}</strong>;
+      }
+      return part;
+    });
+  };
+
   useEffect(() => {
     if (!student || student.isTeacher) {
       navigate('/');
@@ -87,7 +98,7 @@ export default function AssignmentInstructions() {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="prose prose-lg max-w-none text-foreground whitespace-pre-line">
-              {assignment?.instructions_text}
+              {assignment?.instructions_text && formatTextWithBold(assignment.instructions_text)}
             </div>
             
             <div className="flex justify-center pt-6">
