@@ -189,14 +189,20 @@ export default function TeacherDashboard() {
                     <CardTitle className="text-xl">📝 {assignment.title}</CardTitle>
                     <div className="flex gap-4 text-sm text-muted-foreground">
                       <span>📅 {new Date(assignment.created_at).toLocaleDateString('he-IL')}</span>
-                      <span>👥 {stats.totalStudents} תלמידים | ✓ {assignment.submissions_count} הגישו</span>
+                      <span>👥 {assignment.submissions_count} מתוך {stats.totalStudents} הגישו</span>
                       {assignment.average_score > 0 && (
                         <span>📊 ממוצע: {assignment.average_score}</span>
                       )}
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" disabled>צפה בפירוט</Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => navigate(`/teacher/assignment/${assignment.id}`)}
+                    >
+                      צפה בפירוט
+                    </Button>
                   </div>
                 </div>
               </CardHeader>

@@ -154,7 +154,7 @@ export default function AssignmentReview() {
       // Get submission
       const { data: submission } = await supabase
         .from('submissions')
-        .select('id')
+        .select('id, submission_count')
         .eq('student_id', student?.studentId)
         .eq('assignment_id', assignmentId)
         .single();
@@ -196,7 +196,8 @@ export default function AssignmentReview() {
           total_score: totalScore,
           submitted_at: new Date().toISOString(),
           last_submitted_at: new Date().toISOString(),
-          submission_count: 1
+          submission_count: (submission.submission_count || 0) + 1,
+          teacher_feedback: null // Clear feedback on resubmission
         })
         .eq('id', submission.id);
 

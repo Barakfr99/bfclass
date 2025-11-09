@@ -7,6 +7,7 @@ import { StudentProvider } from "./contexts/StudentContext";
 import Login from "./pages/Login";
 import StudentDashboard from "./pages/StudentDashboard";
 import TeacherDashboard from "./pages/TeacherDashboard";
+import TeacherAssignmentDetails from "./pages/TeacherAssignmentDetails";
 import AssignmentInstructions from "./pages/AssignmentInstructions";
 import AssignmentSentence from "./pages/AssignmentSentence";
 import AssignmentReview from "./pages/AssignmentReview";
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/" element={<Login />} />
             <Route path="/student" element={<StudentDashboard />} />
             <Route path="/teacher" element={<TeacherDashboard />} />
+            <Route path="/teacher/assignment/:assignmentId" element={<TeacherAssignmentDetails />} />
             <Route path="/assignment/:assignmentId/instructions" element={<AssignmentInstructions />} />
             <Route path="/assignment/:assignmentId/sentence/:sentenceNum" element={<AssignmentSentence />} />
             <Route path="/assignment/:assignmentId/review" element={<AssignmentReview />} />

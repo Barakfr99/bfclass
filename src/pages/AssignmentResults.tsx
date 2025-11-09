@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useStudent } from '@/contexts/StudentContext';
 import { supabase } from '@/integrations/supabase/client';
-import { CheckCircle2, XCircle, Trophy, Home } from 'lucide-react';
+import { CheckCircle2, XCircle, Trophy, Home, ArrowLeft } from 'lucide-react';
 
 interface SentenceResult {
   sentence_number: number;
@@ -31,30 +31,73 @@ export default function AssignmentResults() {
   const { assignmentId } = useParams<{ assignmentId: string }>();
   const { student } = useStudent();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [results, setResults] = useState<SentenceResult[]>([]);
   const [totalScore, setTotalScore] = useState(0);
   const [maxScore, setMaxScore] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [studentName, setStudentName] = useState<string>('');
+  
+  const submissionIdFromQuery = searchParams.get('submissionId');
+  const isTeacherView = student?.isTeacher && submissionIdFromQuery;
 
   useEffect(() => {
-    if (!student || student.isTeacher) {
+    if (!student) {
       navigate('/');
       return;
     }
     loadResults();
-  }, [assignmentId, student, navigate]);
+  }, [assignmentId, student, navigate, submissionIdFromQuery]);
 
   const loadResults = async () => {
     try {
-      // Get submission
-      const { data: submission } = await supabase
-        .from('submissions')
-        .select('*')
-        .eq('student_id', student?.studentId)
-        .eq('assignment_id', assignmentId)
-        .single();
+      let submission;
+      
+      if (isTeacherView) {
+        // Teacher viewing a specific submission
+        const { data: submissionData } = await supabase
+          .from('submissions')
+          .select('*')
+          .eq('id', submissionIdFromQuery)
+          .single();
+        
+        submission = submissionData;
+        
+        // Get student name
+        if (submission) {
+          const { data: studentData } = await supabase
+            .from('students')
+            .select('student_name')
+            .eq('student_id', submission.student_id)
+            .single();
+          
+          if (studentData) {
+            setStudentName(studentData.student_name);
+          }
+        }
+      } else {
+        // Student viewing their own submission
+        const { data: submissionData } = await supabase
+          .from('submissions')
+          .select('*')
+          .eq('student_id', student?.studentId)
+          .eq('assignment_id', assignmentId)
+          .single();
+        
+        submission = submissionData;
+      }
 
-      if (!submission || submission.status !== 'submitted') {
+      if (!submission) {
+        if (isTeacherView) {
+          navigate(`/teacher/assignment/${assignmentId}`);
+        } else {
+          navigate(`/assignment/${assignmentId}/instructions`);
+        }
+        return;
+      }
+      
+      // For students, only show if submitted. For teachers, show any status
+      if (!isTeacherView && submission.status !== 'submitted') {
         navigate(`/assignment/${assignmentId}/instructions`);
         return;
       }
@@ -150,7 +193,14 @@ export default function AssignmentResults() {
                 <Trophy className="w-10 h-10 text-primary-foreground" />
               </div>
             </div>
-            <CardTitle className="text-3xl">🏆 תוצאות התרגיל</CardTitle>
+            <CardTitle className="text-3xl">
+              🏆 תוצאות התרגיל
+              {isTeacherView && studentName && (
+                <span className="block text-xl text-muted-foreground mt-2">
+                  תלמיד: {studentName}
+                </span>
+              )}
+            </CardTitle>
             <div className="space-y-2">
               <p className={`text-5xl font-bold ${getScoreColor(totalScore)}`}>
                 {totalScore}
@@ -283,10 +333,17 @@ export default function AssignmentResults() {
 
         {/* Back Button */}
         <div className="flex justify-center pt-4">
-          <Button onClick={() => navigate('/student')} className="gap-2">
-            <Home className="w-4 h-4" />
-            חזור לדף הבית
-          </Button>
+          {isTeacherView ? (
+            <Button onClick={() => navigate(`/teacher/assignment/${assignmentId}`)} className="gap-2">
+              <ArrowLeft className="w-4 h-4" />
+              חזור לפירוט המשימה
+            </Button>
+          ) : (
+            <Button onClick={() => navigate('/student')} className="gap-2">
+              <Home className="w-4 h-4" />
+              חזור לדף הבית
+            </Button>
+          )}
         </div>
       </div>
     </div>
