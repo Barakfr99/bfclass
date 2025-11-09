@@ -69,6 +69,10 @@ export default function TeacherDashboard() {
   const [selectedStudentForReset, setSelectedStudentForReset] = useState<{
     student_id: string;
     student_name: string;
+    submission?: {
+      id: string;
+      status: string;
+    };
   } | null>(null);
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<string>('');
 
@@ -233,12 +237,16 @@ export default function TeacherDashboard() {
     setReturnDialogOpen(true);
   };
 
-  const handleResetAssignment = (assignmentId: string) => {
+  const handleResetAssignment = (assignmentId: string, submissionId: string, status: string) => {
     const student = students.find(s => s.student_id === selectedStudent);
     if (student) {
       setSelectedStudentForReset({
         student_id: student.student_id,
-        student_name: student.student_name
+        student_name: student.student_name,
+        submission: {
+          id: submissionId,
+          status: status
+        }
       });
       setSelectedAssignmentId(assignmentId);
       setResetDialogOpen(true);
@@ -496,13 +504,18 @@ export default function TeacherDashboard() {
                           </Button>
                         )}
                         
-                        {canReset && (
+                        {canReset && assignment.submission_id && (
                           <Button 
                             variant="destructive"
                             size="sm"
-                            onClick={() => handleResetAssignment(assignment.id)}
+                            onClick={() => handleResetAssignment(
+                              assignment.id,
+                              assignment.submission_id!,
+                              assignment.submission_status!
+                            )}
                           >
                             <RotateCcw className="w-4 h-4" />
+                            איפוס תרגיל
                           </Button>
                         )}
                       </div>
