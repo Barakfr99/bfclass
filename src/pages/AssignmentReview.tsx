@@ -136,18 +136,12 @@ export default function AssignmentReview() {
   };
 
   const completedCount = answers.filter(isAnswerComplete).length;
-  const canSubmit = completedCount === totalSentences;
 
   const handleEdit = (sentenceNumber: number) => {
     navigate(`/assignment/${assignmentId}/sentence/${sentenceNumber}`);
   };
 
   const handleSubmit = async () => {
-    if (!canSubmit) {
-      toast.error('יש להשלים את כל המשפטים לפני ההגשה');
-      return;
-    }
-
     setSubmitting(true);
 
     try {
@@ -269,21 +263,9 @@ export default function AssignmentReview() {
                 <p className="text-lg font-semibold">
                   הושלמו {completedCount} מתוך {totalSentences} משפטים
                 </p>
-                {!canSubmit && (
-                  <div className="space-y-1">
-                    <p className="text-sm text-destructive font-medium">
-                      ⚠️ יש להשלים את כל המשפטים לפני ההגשה
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      לחץ על משפט כדי לערוך אותו
-                    </p>
-                  </div>
-                )}
-                {canSubmit && (
-                  <p className="text-sm text-success">
-                    ✓ כל המשפטים מולאו - ניתן להגיש את התרגיל
-                  </p>
-                )}
+                <p className="text-xs text-muted-foreground">
+                  לחץ על משפט כדי לערוך אותו
+                </p>
               </div>
 
               <div className="flex gap-4 justify-center">
@@ -295,7 +277,7 @@ export default function AssignmentReview() {
                 </Button>
                 <Button
                   onClick={handleSubmit}
-                  disabled={!canSubmit || submitting}
+                  disabled={submitting}
                   className="gap-2"
                 >
                   {submitting ? 'שולח...' : 'הגש תרגיל ✓'}
