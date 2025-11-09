@@ -12,6 +12,8 @@ interface Stats {
   totalSubmissions: number;
   averageScore: number;
   pendingReviews: number;
+  totalAssignments?: number;
+  submittedAssignments?: number;
 }
 
 interface Assignment {
@@ -130,6 +132,8 @@ export default function TeacherDashboard() {
         .select('*')
         .order('created_at', { ascending: false });
 
+      const totalAssignments = assignmentsData?.length || 0;
+
       // Get all submissions for this student
       const { data: submissionsData } = await supabase
         .from('submissions')
@@ -137,7 +141,7 @@ export default function TeacherDashboard() {
         .eq('student_id', studentId);
 
       // Calculate stats for this specific student
-      const submittedSubmissions = submissionsData?.filter(s => s.status === 'submitted') || [];
+      const submittedSubmissions = submissionsData?.filter(s => s.status === 'submitted' || s.status === 'returned_for_revision') || [];
       const avgScore = submittedSubmissions.length > 0
         ? submittedSubmissions.reduce((sum, s) => sum + (s.total_score || 0), 0) / submittedSubmissions.length
         : 0;
@@ -146,7 +150,9 @@ export default function TeacherDashboard() {
         totalStudents: 1, // It's a specific student
         totalSubmissions: submissionsData?.length || 0,
         averageScore: Math.round(avgScore * 10) / 10,
-        pendingReviews: submittedSubmissions.length
+        pendingReviews: submittedSubmissions.length,
+        totalAssignments: totalAssignments,
+        submittedAssignments: submittedSubmissions.length
       });
 
       // Combine assignments with student's submission data
@@ -244,7 +250,17 @@ export default function TeacherDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">הגשות</p>
-                  <p className="text-3xl font-bold">{stats.totalSubmissions}</p>
+                  <p className="text-3xl font-bold">
+                    {selectedStudent === 'all' 
+                      ? stats.totalSubmissions
+                      : `${stats.submittedAssignments}/${stats.totalAssignments}`
+                    }
+                  </p>
+                  {selectedStudent !== 'all' && stats.totalAssignments && stats.totalAssignments > 0 && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      ({Math.round((stats.submittedAssignments || 0) / stats.totalAssignments * 100)}% הגישו)
+                    </p>
+                  )}
                 </div>
                 <FileCheck className="w-8 h-8 text-secondary" />
               </div>
