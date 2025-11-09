@@ -22,6 +22,10 @@ interface Sentence {
   is_practice: boolean;
 }
 
+interface Assignment {
+  title: string;
+}
+
 interface Answer {
   student_shoresh: string;
   student_binyan: string;
@@ -34,6 +38,7 @@ export default function AssignmentSentence() {
   const { student } = useStudent();
   const navigate = useNavigate();
   const [sentence, setSentence] = useState<Sentence | null>(null);
+  const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [totalSentences, setTotalSentences] = useState(0);
   const [answer, setAnswer] = useState<Answer>({
     student_shoresh: '',
@@ -69,14 +74,17 @@ export default function AssignmentSentence() {
       });
     }
 
-    // Get total sentences
+    // Get assignment data
     const { data: assignmentData } = await supabase
       .from('assignments')
-      .select('total_sentences')
+      .select('title, total_sentences')
       .eq('id', assignmentId)
       .single();
 
-    setTotalSentences(assignmentData?.total_sentences || 0);
+    if (assignmentData) {
+      setAssignment({ title: assignmentData.title });
+      setTotalSentences(assignmentData.total_sentences || 0);
+    }
 
     // Get or create submission
     let { data: submission } = await supabase
@@ -188,7 +196,7 @@ export default function AssignmentSentence() {
         <Card className="shadow-lg">
           <CardHeader>
             <div className="flex justify-between items-center mb-4">
-              <CardTitle>תרגיל תורת הצורות</CardTitle>
+              <CardTitle>{assignment?.title || 'תרגיל תורת הצורות'}</CardTitle>
               <span className="text-sm text-muted-foreground">
                 {sentence?.is_practice ? 'משפט תרגול' : `משפט ${currentSentenceNum} מתוך ${totalSentences}`}
               </span>
