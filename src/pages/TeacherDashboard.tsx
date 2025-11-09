@@ -33,6 +33,7 @@ interface StudentAssignment extends Assignment {
   submission_status?: string;
   submission_score?: number;
   submitted_at?: string;
+  submission_id?: string;
 }
 
 export default function TeacherDashboard() {
@@ -134,6 +135,19 @@ export default function TeacherDashboard() {
         .select('*')
         .eq('student_id', studentId);
 
+      // Calculate stats for this specific student
+      const submittedSubmissions = submissionsData?.filter(s => s.status === 'submitted') || [];
+      const avgScore = submittedSubmissions.length > 0
+        ? submittedSubmissions.reduce((sum, s) => sum + (s.total_score || 0), 0) / submittedSubmissions.length
+        : 0;
+
+      setStats({
+        totalStudents: 1, // It's a specific student
+        totalSubmissions: submissionsData?.length || 0,
+        averageScore: Math.round(avgScore * 10) / 10,
+        pendingReviews: submittedSubmissions.length
+      });
+
       // Combine assignments with student's submission data
       const assignmentsWithStatus = (assignmentsData || []).map(assignment => {
         const submission = submissionsData?.find(s => s.assignment_id === assignment.id);
@@ -144,7 +158,8 @@ export default function TeacherDashboard() {
           average_score: 0,
           submission_status: submission?.status || 'not_started',
           submission_score: submission?.total_score,
-          submitted_at: submission?.submitted_at
+          submitted_at: submission?.submitted_at,
+          submission_id: submission?.id // Store submission ID for navigation
         };
       });
 
@@ -157,6 +172,9 @@ export default function TeacherDashboard() {
   useEffect(() => {
     if (selectedStudent !== 'all') {
       loadStudentAssignments(selectedStudent);
+    } else {
+      // Reload general stats when switching back to "all"
+      loadData();
     }
   }, [selectedStudent]);
 
@@ -203,7 +221,9 @@ export default function TeacherDashboard() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">תלמידים</p>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedStudent === 'all' ? 'תלמידים' : 'תלמיד'}
+                  </p>
                   <p className="text-3xl font-bold">{stats.totalStudents}</p>
                 </div>
                 <Users className="w-8 h-8 text-primary" />
@@ -239,7 +259,9 @@ export default function TeacherDashboard() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">ממתין</p>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedStudent === 'all' ? 'ממתין לבדיקה' : 'הוגש'}
+                  </p>
                   <p className="text-3xl font-bold">{stats.pendingReviews}</p>
                 </div>
                 <Clock className="w-8 h-8 text-warning" />
@@ -306,6 +328,8 @@ export default function TeacherDashboard() {
             // Show assignments filtered by selected student
             studentAssignments.map(assignment => {
               const statusDisplay = getStatusDisplay(assignment.submission_status || 'not_started');
+              const canViewSubmission = assignment.submission_status === 'submitted' || assignment.submission_status === 'returned_for_revision';
+              
               return (
                 <Card key={assignment.id}>
                   <CardHeader>
@@ -324,13 +348,23 @@ export default function TeacherDashboard() {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => navigate(`/teacher/assignment/${assignment.id}`)}
-                        >
-                          צפה בפירוט
-                        </Button>
+                        {canViewSubmission && assignment.submission_id ? (
+                          <Button 
+                            variant="default" 
+                            size="sm"
+                            onClick={() => navigate(`/assignment/${assignment.id}/results?submissionId=${assignment.submission_id}`)}
+                          >
+                            👁️ צפה בהגשה
+                          </Button>
+                        ) : (
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            disabled
+                          >
+                            {assignment.submission_status === 'in_progress' ? '⏳ בתהליך' : '⚪ לא התחיל'}
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </CardHeader>
