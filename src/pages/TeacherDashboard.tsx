@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useStudent } from '@/contexts/StudentContext';
 import { supabase } from '@/integrations/supabase/client';
-import { LogOut, Users, FileCheck, TrendingUp, Clock } from 'lucide-react';
+import { LogOut, Users, FileCheck, TrendingUp, Clock, User } from 'lucide-react';
 
 interface Stats {
   totalStudents: number;
@@ -22,6 +23,18 @@ interface Assignment {
   average_score: number;
 }
 
+interface StudentInfo {
+  id: string;
+  student_id: string;
+  student_name: string;
+}
+
+interface StudentAssignment extends Assignment {
+  submission_status?: string;
+  submission_score?: number;
+  submitted_at?: string;
+}
+
 export default function TeacherDashboard() {
   const { student, logout } = useStudent();
   const navigate = useNavigate();
@@ -32,6 +45,9 @@ export default function TeacherDashboard() {
     pendingReviews: 0
   });
   const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [students, setStudents] = useState<StudentInfo[]>([]);
+  const [selectedStudent, setSelectedStudent] = useState<string>('all');
+  const [studentAssignments, setStudentAssignments] = useState<StudentAssignment[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -44,11 +60,14 @@ export default function TeacherDashboard() {
 
   const loadData = async () => {
     try {
-      // Load students count
-      const { count: studentsCount } = await supabase
+      // Load all students
+      const { data: studentsData, count: studentsCount } = await supabase
         .from('students')
-        .select('*', { count: 'exact', head: true })
-        .eq('is_teacher', false);
+        .select('*', { count: 'exact' })
+        .eq('is_teacher', false)
+        .order('student_name');
+      
+      setStudents(studentsData || []);
 
       // Load submissions stats
       const { data: submissions } = await supabase
@@ -98,6 +117,61 @@ export default function TeacherDashboard() {
       console.error('Error loading data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadStudentAssignments = async (studentId: string) => {
+    try {
+      // Get all assignments
+      const { data: assignmentsData } = await supabase
+        .from('assignments')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      // Get all submissions for this student
+      const { data: submissionsData } = await supabase
+        .from('submissions')
+        .select('*')
+        .eq('student_id', studentId);
+
+      // Combine assignments with student's submission data
+      const assignmentsWithStatus = (assignmentsData || []).map(assignment => {
+        const submission = submissionsData?.find(s => s.assignment_id === assignment.id);
+        
+        return {
+          ...assignment,
+          submissions_count: 0,
+          average_score: 0,
+          submission_status: submission?.status || 'not_started',
+          submission_score: submission?.total_score,
+          submitted_at: submission?.submitted_at
+        };
+      });
+
+      setStudentAssignments(assignmentsWithStatus);
+    } catch (error) {
+      console.error('Error loading student assignments:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedStudent !== 'all') {
+      loadStudentAssignments(selectedStudent);
+    }
+  }, [selectedStudent]);
+
+  const getStatusDisplay = (status: string) => {
+    switch (status) {
+      case 'not_started':
+        return { text: '⚪ לא התחיל', color: 'text-muted-foreground' };
+      case 'in_progress':
+        return { text: '🟡 בתהליך', color: 'text-warning' };
+      case 'submitted':
+        return { text: '🟢 הוגש', color: 'text-success' };
+      case 'returned_for_revision':
+        return { text: '🔴 הוחזר לתיקון', color: 'text-destructive' };
+      default:
+        return { text: status, color: 'text-muted-foreground' };
     }
   };
 
@@ -176,38 +250,94 @@ export default function TeacherDashboard() {
 
         {/* Assignments List */}
         <div className="space-y-4">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <h2 className="text-2xl font-bold">רשימת משימות</h2>
-            <Button disabled>➕ צור משימה חדשה</Button>
+            <div className="flex gap-4 items-center w-full md:w-auto">
+              <div className="flex items-center gap-2 flex-1 md:flex-initial">
+                <User className="w-4 h-4 text-muted-foreground" />
+                <Select value={selectedStudent} onValueChange={setSelectedStudent}>
+                  <SelectTrigger className="w-full md:w-[250px]">
+                    <SelectValue placeholder="בחר תלמיד" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">כל התלמידים</SelectItem>
+                    {students.map(student => (
+                      <SelectItem key={student.id} value={student.student_id}>
+                        {student.student_name} ({student.student_id})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button disabled>➕ צור משימה חדשה</Button>
+            </div>
           </div>
 
-          {assignments.map(assignment => (
-            <Card key={assignment.id}>
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div className="space-y-2">
-                    <CardTitle className="text-xl">📝 {assignment.title}</CardTitle>
-                    <div className="flex gap-4 text-sm text-muted-foreground">
-                      <span>📅 {new Date(assignment.created_at).toLocaleDateString('he-IL')}</span>
-                      <span>👥 {assignment.submissions_count} מתוך {stats.totalStudents} הגישו</span>
-                      {assignment.average_score > 0 && (
-                        <span>📊 ממוצע: {assignment.average_score}</span>
-                      )}
+          {selectedStudent === 'all' ? (
+            // Show all assignments with overall stats
+            assignments.map(assignment => (
+              <Card key={assignment.id}>
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-2">
+                      <CardTitle className="text-xl">📝 {assignment.title}</CardTitle>
+                      <div className="flex gap-4 text-sm text-muted-foreground">
+                        <span>📅 {new Date(assignment.created_at).toLocaleDateString('he-IL')}</span>
+                        <span>👥 {assignment.submissions_count} מתוך {stats.totalStudents} הגישו</span>
+                        {assignment.average_score > 0 && (
+                          <span>📊 ממוצע: {assignment.average_score}</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => navigate(`/teacher/assignment/${assignment.id}`)}
+                      >
+                        צפה בפירוט
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => navigate(`/teacher/assignment/${assignment.id}`)}
-                    >
-                      צפה בפירוט
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-            </Card>
-          ))}
+                </CardHeader>
+              </Card>
+            ))
+          ) : (
+            // Show assignments filtered by selected student
+            studentAssignments.map(assignment => {
+              const statusDisplay = getStatusDisplay(assignment.submission_status || 'not_started');
+              return (
+                <Card key={assignment.id}>
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div className="space-y-2">
+                        <CardTitle className="text-xl">📝 {assignment.title}</CardTitle>
+                        <div className="flex gap-4 text-sm">
+                          <span className="text-muted-foreground">📅 {new Date(assignment.created_at).toLocaleDateString('he-IL')}</span>
+                          <span className={statusDisplay.color}>{statusDisplay.text}</span>
+                          {assignment.submission_score !== undefined && assignment.submission_score !== null && (
+                            <span className="text-muted-foreground">📊 ציון: {assignment.submission_score}</span>
+                          )}
+                          {assignment.submitted_at && (
+                            <span className="text-muted-foreground">⏰ הוגש: {new Date(assignment.submitted_at).toLocaleDateString('he-IL')}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => navigate(`/teacher/assignment/${assignment.id}`)}
+                        >
+                          צפה בפירוט
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                </Card>
+              );
+            })
+          )}
         </div>
       </div>
     </div>
