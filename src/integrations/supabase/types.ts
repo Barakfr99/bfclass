@@ -18,39 +18,42 @@ export type Database = {
         Row: {
           analyzed_word: string
           assignment_id: string | null
-          correct_binyan: string
+          correct_binyan: string | null
           correct_guf: string | null
           correct_shoresh: string
           correct_zman: string
           created_at: string | null
           full_sentence: string
           id: string
+          is_practice: boolean | null
           sentence_number: number
           word_position: number
         }
         Insert: {
           analyzed_word: string
           assignment_id?: string | null
-          correct_binyan: string
+          correct_binyan?: string | null
           correct_guf?: string | null
           correct_shoresh: string
           correct_zman: string
           created_at?: string | null
           full_sentence: string
           id?: string
+          is_practice?: boolean | null
           sentence_number: number
           word_position: number
         }
         Update: {
           analyzed_word?: string
           assignment_id?: string | null
-          correct_binyan?: string
+          correct_binyan?: string | null
           correct_guf?: string | null
           correct_shoresh?: string
           correct_zman?: string
           created_at?: string | null
           full_sentence?: string
           id?: string
+          is_practice?: boolean | null
           sentence_number?: number
           word_position?: number
         }
