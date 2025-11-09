@@ -26,7 +26,7 @@ interface SentenceAnswer {
   correct_shoresh: string;
   correct_binyan: string;
   correct_zman: string;
-  correct_guf: string;
+  correct_guf: string | null;
 }
 
 export default function AssignmentReview() {
@@ -112,18 +112,34 @@ export default function AssignmentReview() {
   };
 
   const isAnswerComplete = (answer: SentenceAnswer) => {
-    return answer.student_shoresh?.trim() && answer.student_binyan?.trim() && 
-           answer.student_zman?.trim() && answer.student_guf?.trim();
+    const requiredFields = [
+      answer.student_shoresh?.trim(),
+      answer.student_binyan?.trim(),
+      answer.student_zman?.trim()
+    ];
+    
+    // אם יש גוף, גם הוא נדרש
+    if (answer.correct_guf) {
+      requiredFields.push(answer.student_guf?.trim());
+    }
+    
+    return requiredFields.every(f => f);
   };
 
   const isAnswerPartial = (answer: SentenceAnswer) => {
-    const filledFields = [
+    const fields = [
       answer.student_shoresh,
       answer.student_binyan,
-      answer.student_zman,
-      answer.student_guf
-    ].filter(f => f && f.trim()).length;
-    return filledFields > 0 && filledFields < 4;
+      answer.student_zman
+    ];
+    
+    if (answer.correct_guf) {
+      fields.push(answer.student_guf);
+    }
+    
+    const filledFields = fields.filter(f => f && f.trim()).length;
+    const totalFields = answer.correct_guf ? 4 : 3;
+    return filledFields > 0 && filledFields < totalFields;
   };
 
   const getMissingFields = (answer: SentenceAnswer) => {
@@ -131,7 +147,7 @@ export default function AssignmentReview() {
     if (!answer.student_shoresh?.trim()) missing.push('שורש');
     if (!answer.student_binyan?.trim()) missing.push('בניין');
     if (!answer.student_zman?.trim()) missing.push('זמן');
-    if (!answer.student_guf?.trim()) missing.push('גוף');
+    if (answer.correct_guf && !answer.student_guf?.trim()) missing.push('גוף');
     return missing;
   };
 
@@ -163,8 +179,9 @@ export default function AssignmentReview() {
         const binyanCorrect = validateBinyan(answer.student_binyan || '', answer.correct_binyan);
         const zmanCorrect = validateZman(answer.student_zman || '', answer.correct_zman);
         const gufCorrect = validateGuf(answer.student_guf || '', answer.correct_guf);
-
-        const points = calculateSentenceScore(shoreshCorrect, binyanCorrect, zmanCorrect, gufCorrect);
+        
+        const hasGuf = answer.correct_guf !== null;
+        const points = calculateSentenceScore(shoreshCorrect, binyanCorrect, zmanCorrect, gufCorrect, hasGuf);
         totalScore += points;
 
         // Update answer with validation results
@@ -239,18 +256,24 @@ export default function AssignmentReview() {
                     <div>
                       <p className="font-semibold">משפט {answer.sentence_number}</p>
                       {isAnswerComplete(answer) ? (
-                        <p className="text-sm text-success">✓ הושלם (4/4 שדות)</p>
+                        <p className="text-sm text-success">
+                          ✓ הושלם ({answer.correct_guf ? '4/4' : '3/3'} שדות)
+                        </p>
                       ) : isAnswerPartial(answer) ? (
                         <p className="text-sm text-warning">
-                          ⚠️ חלקי ({[
-                            answer.student_shoresh,
-                            answer.student_binyan,
-                            answer.student_zman,
-                            answer.student_guf
-                          ].filter(f => f && f.trim()).length}/4) - חסרים: {getMissingFields(answer).join(', ')}
+                          ⚠️ חלקי ({
+                            [
+                              answer.student_shoresh,
+                              answer.student_binyan,
+                              answer.student_zman,
+                              answer.correct_guf ? answer.student_guf : 'N/A'
+                            ].filter(f => f && f.trim() && f !== 'N/A').length
+                          }/{answer.correct_guf ? '4' : '3'}) - חסרים: {getMissingFields(answer).join(', ')}
                         </p>
                       ) : (
-                        <p className="text-sm text-destructive">✗ לא מולא (0/4 שדות)</p>
+                        <p className="text-sm text-destructive">
+                          ✗ לא מולא (0/{answer.correct_guf ? '4' : '3'} שדות)
+                        </p>
                       )}
                     </div>
                   </div>

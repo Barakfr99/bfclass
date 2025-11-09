@@ -65,7 +65,10 @@ export function validateZman(userInput: string, correctZman: string): boolean {
 }
 
 // אימות גוף
-export function validateGuf(userInput: string, correctGuf: string): boolean {
+export function validateGuf(userInput: string, correctGuf: string | null): boolean {
+  // אם אין גוף נכון (שם פועל), תמיד נכון
+  if (!correctGuf) return true;
+  
   const normalized = normalizeHebrew(userInput);
   const correctNormalized = normalizeHebrew(correctGuf);
   
@@ -77,13 +80,17 @@ export function calculateSentenceScore(
   shoreshCorrect: boolean,
   binyanCorrect: boolean,
   zmanCorrect: boolean,
-  gufCorrect: boolean
+  gufCorrect: boolean,
+  hasGuf: boolean = true
 ): number {
   let correctCount = 0;
   if (shoreshCorrect) correctCount++;
   if (binyanCorrect) correctCount++;
   if (zmanCorrect) correctCount++;
-  if (gufCorrect) correctCount++;
+  if (hasGuf && gufCorrect) correctCount++;
   
-  return correctCount * 2.5;
+  // אם אין גוף - 10 נקודות / 3 שדות = 3.33 לכל שדה
+  // אם יש גוף - 10 נקודות / 4 שדות = 2.5 לכל שדה
+  const pointsPerField = hasGuf ? 2.5 : (10 / 3);
+  return correctCount * pointsPerField;
 }

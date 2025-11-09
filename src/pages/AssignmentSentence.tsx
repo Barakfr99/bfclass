@@ -17,6 +17,7 @@ interface Sentence {
   full_sentence: string;
   analyzed_word: string;
   word_position: number;
+  correct_guf: string | null;
 }
 
 interface Answer {
@@ -290,32 +291,34 @@ export default function AssignmentSentence() {
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Label>גוף:</Label>
-                    <Popover>
-                      <PopoverTrigger>
-                        <Info className="w-4 h-4 text-muted-foreground hover:text-primary cursor-help" />
-                      </PopoverTrigger>
-                      <PopoverContent className="w-80">
-                        <div className="space-y-2">
-                          <h4 className="font-semibold">📌 גופים דקדוקיים:</h4>
-                          <ul className="text-sm space-y-1">
-                            <li>• מדבר / מדברת / מדברים / מדברות</li>
-                            <li>• נוכח / נוכחת / נוכחים / נוכחות</li>
-                            <li>• נסתר / נסתרת / נסתרים / נסתרות</li>
-                          </ul>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
+                {sentence?.correct_guf && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Label>גוף:</Label>
+                      <Popover>
+                        <PopoverTrigger>
+                          <Info className="w-4 h-4 text-muted-foreground hover:text-primary cursor-help" />
+                        </PopoverTrigger>
+                        <PopoverContent className="w-80">
+                          <div className="space-y-2">
+                            <h4 className="font-semibold">📌 גופים דקדוקיים:</h4>
+                            <ul className="text-sm space-y-1">
+                              <li>• מדבר / מדברת / מדברים / מדברות</li>
+                              <li>• נוכח / נוכחת / נוכחים / נוכחות</li>
+                              <li>• נסתר / נסתרת / נסתרים / נסתרות</li>
+                            </ul>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <Input
+                      value={answer.student_guf}
+                      onChange={(e) => setAnswer({ ...answer, student_guf: e.target.value })}
+                      placeholder="הקלד את התשובה..."
+                      maxLength={15}
+                    />
                   </div>
-                  <Input
-                    value={answer.student_guf}
-                    onChange={(e) => setAnswer({ ...answer, student_guf: e.target.value })}
-                    placeholder="הקלד את התשובה..."
-                    maxLength={15}
-                  />
-                </div>
+                )}
               </div>
             </div>
 

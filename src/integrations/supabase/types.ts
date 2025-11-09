@@ -19,7 +19,7 @@ export type Database = {
           analyzed_word: string
           assignment_id: string | null
           correct_binyan: string
-          correct_guf: string
+          correct_guf: string | null
           correct_shoresh: string
           correct_zman: string
           created_at: string | null
@@ -32,7 +32,7 @@ export type Database = {
           analyzed_word: string
           assignment_id?: string | null
           correct_binyan: string
-          correct_guf: string
+          correct_guf?: string | null
           correct_shoresh: string
           correct_zman: string
           created_at?: string | null
@@ -45,7 +45,7 @@ export type Database = {
           analyzed_word?: string
           assignment_id?: string | null
           correct_binyan?: string
-          correct_guf?: string
+          correct_guf?: string | null
           correct_shoresh?: string
           correct_zman?: string
           created_at?: string | null
