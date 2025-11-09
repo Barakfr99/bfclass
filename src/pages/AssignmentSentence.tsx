@@ -247,9 +247,6 @@ export default function AssignmentSentence() {
                             <li>• הופעל</li>
                             <li>• התפעל</li>
                           </ul>
-                          <p className="text-sm text-muted-foreground">
-                            💡 ניתן לכתוב גם "פעל-קל" או "היפעיל"
-                          </p>
                         </div>
                       </PopoverContent>
                     </Popover>
