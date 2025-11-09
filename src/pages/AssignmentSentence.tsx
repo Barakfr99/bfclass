@@ -300,13 +300,29 @@ export default function AssignmentSentence() {
                           <Info className="w-4 h-4 text-muted-foreground hover:text-primary cursor-help" />
                         </PopoverTrigger>
                         <PopoverContent className="w-80">
-                          <div className="space-y-2">
+                          <div className="space-y-3">
                             <h4 className="font-semibold">📌 גופים דקדוקיים:</h4>
-                            <ul className="text-sm space-y-1">
-                              <li>• מדבר / מדברת / מדברים / מדברות</li>
-                              <li>• נוכח / נוכחת / נוכחים / נוכחות</li>
-                              <li>• נסתר / נסתרת / נסתרים / נסתרות</li>
-                            </ul>
+                            <div className="text-sm space-y-2">
+                              <div>
+                                <p className="font-medium">גוף ראשון (מדבר):</p>
+                                <p className="text-muted-foreground">אני → מדבר / מדברת</p>
+                                <p className="text-muted-foreground">אנחנו → מדברים / מדברות</p>
+                              </div>
+                              <div>
+                                <p className="font-medium">גוף שני (נוכח):</p>
+                                <p className="text-muted-foreground">אתה → נוכח</p>
+                                <p className="text-muted-foreground">את → נוכחת</p>
+                                <p className="text-muted-foreground">אתם → נוכחים</p>
+                                <p className="text-muted-foreground">אתן → נוכחות</p>
+                              </div>
+                              <div>
+                                <p className="font-medium">גוף שלישי (נסתר):</p>
+                                <p className="text-muted-foreground">הוא → נסתר</p>
+                                <p className="text-muted-foreground">היא → נסתרת</p>
+                                <p className="text-muted-foreground">הם → נסתרים</p>
+                                <p className="text-muted-foreground">הן → נסתרות</p>
+                              </div>
+                            </div>
                           </div>
                         </PopoverContent>
                       </Popover>
