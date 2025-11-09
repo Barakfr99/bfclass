@@ -164,7 +164,7 @@ export default function AssignmentSentence() {
           <span
             key={index}
             className={index === sentence.word_position ? 
-              'font-bold text-primary underline decoration-2 text-[26px]' : ''}
+              'font-bold text-primary text-[26px]' : ''}
           >
             {word}{' '}
           </span>
