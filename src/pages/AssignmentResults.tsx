@@ -314,24 +314,24 @@ export default function AssignmentResults() {
                       {result.shoresh_correct ? (
                         <span className="text-success">✓ {result.student_shoresh}</span>
                       ) : (
-                        <>
+                        <div className="space-y-1">
                           <div>
-                            <span className="text-destructive">✗ שלך: {result.student_shoresh}</span>
+                            <span className="text-destructive">✗ תשובת התלמיד: {result.student_shoresh}</span>
                             <br />
-                            <span className="text-muted-foreground">נכון: {result.correct_shoresh}</span>
+                            <span className="text-muted-foreground">תשובה נכונה: {result.correct_shoresh}</span>
                           </div>
                           {isTeacherView && (
                             <Button
                               size="sm"
-                              variant="outline"
-                              className="mt-1 h-7 text-xs gap-1"
+                              variant="default"
+                              className="mt-1 h-8 text-xs gap-1 bg-success hover:bg-success/90"
                               onClick={() => approveAnswer(result.answer_id, 'shoresh')}
                             >
                               <Check className="w-3 h-3" />
-                              אשר תשובה
+                              אשר תשובה זו
                             </Button>
                           )}
-                        </>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -349,24 +349,24 @@ export default function AssignmentResults() {
                       {result.binyan_correct ? (
                         <span className="text-success">✓ {result.student_binyan}</span>
                       ) : (
-                        <>
+                        <div className="space-y-1">
                           <div>
-                            <span className="text-destructive">✗ שלך: {result.student_binyan}</span>
+                            <span className="text-destructive">✗ תשובת התלמיד: {result.student_binyan}</span>
                             <br />
-                            <span className="text-muted-foreground">נכון: {result.correct_binyan}</span>
+                            <span className="text-muted-foreground">תשובה נכונה: {result.correct_binyan}</span>
                           </div>
                           {isTeacherView && (
                             <Button
                               size="sm"
-                              variant="outline"
-                              className="mt-1 h-7 text-xs gap-1"
+                              variant="default"
+                              className="mt-1 h-8 text-xs gap-1 bg-success hover:bg-success/90"
                               onClick={() => approveAnswer(result.answer_id, 'binyan')}
                             >
                               <Check className="w-3 h-3" />
-                              אשר תשובה
+                              אשר תשובה זו
                             </Button>
                           )}
-                        </>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -384,24 +384,24 @@ export default function AssignmentResults() {
                       {result.zman_correct ? (
                         <span className="text-success">✓ {result.student_zman}</span>
                       ) : (
-                        <>
+                        <div className="space-y-1">
                           <div>
-                            <span className="text-destructive">✗ שלך: {result.student_zman}</span>
+                            <span className="text-destructive">✗ תשובת התלמיד: {result.student_zman}</span>
                             <br />
-                            <span className="text-muted-foreground">נכון: {result.correct_zman}</span>
+                            <span className="text-muted-foreground">תשובה נכונה: {result.correct_zman}</span>
                           </div>
                           {isTeacherView && (
                             <Button
                               size="sm"
-                              variant="outline"
-                              className="mt-1 h-7 text-xs gap-1"
+                              variant="default"
+                              className="mt-1 h-8 text-xs gap-1 bg-success hover:bg-success/90"
                               onClick={() => approveAnswer(result.answer_id, 'zman')}
                             >
                               <Check className="w-3 h-3" />
-                              אשר תשובה
+                              אשר תשובה זו
                             </Button>
                           )}
-                        </>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -419,24 +419,24 @@ export default function AssignmentResults() {
                       {result.guf_correct ? (
                         <span className="text-success">✓ {result.student_guf}</span>
                       ) : (
-                        <>
+                        <div className="space-y-1">
                           <div>
-                            <span className="text-destructive">✗ שלך: {result.student_guf}</span>
+                            <span className="text-destructive">✗ תשובת התלמיד: {result.student_guf}</span>
                             <br />
-                            <span className="text-muted-foreground">נכון: {result.correct_guf}</span>
+                            <span className="text-muted-foreground">תשובה נכונה: {result.correct_guf}</span>
                           </div>
                           {isTeacherView && (
                             <Button
                               size="sm"
-                              variant="outline"
-                              className="mt-1 h-7 text-xs gap-1"
+                              variant="default"
+                              className="mt-1 h-8 text-xs gap-1 bg-success hover:bg-success/90"
                               onClick={() => approveAnswer(result.answer_id, 'guf')}
                             >
                               <Check className="w-3 h-3" />
-                              אשר תשובה
+                              אשר תשובה זו
                             </Button>
                           )}
-                        </>
+                        </div>
                       )}
                     </div>
                   </div>
