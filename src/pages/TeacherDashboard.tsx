@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useStudent } from '@/contexts/StudentContext';
 import { supabase } from '@/integrations/supabase/client';
-import { LogOut, Users, FileCheck, TrendingUp, Clock, User } from 'lucide-react';
+import { LogOut, Users, FileCheck, TrendingUp, Clock, User, RotateCcw } from 'lucide-react';
+import { toast } from 'sonner';
+import ReturnForRevisionDialog from '@/components/ReturnForRevisionDialog';
+import ResetAssignmentDialog from '@/components/ResetAssignmentDialog';
 
 interface Stats {
   totalStudents: number;
@@ -41,6 +44,8 @@ interface StudentAssignment extends Assignment {
 export default function TeacherDashboard() {
   const { student, logout } = useStudent();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const studentIdFromUrl = searchParams.get('student');
   const [stats, setStats] = useState<Stats>({
     totalStudents: 0,
     totalSubmissions: 0,
@@ -53,6 +58,18 @@ export default function TeacherDashboard() {
   const [selectedStudentName, setSelectedStudentName] = useState<string>('');
   const [studentAssignments, setStudentAssignments] = useState<StudentAssignment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [returnDialogOpen, setReturnDialogOpen] = useState(false);
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [selectedSubmission, setSelectedSubmission] = useState<{
+    id: string;
+    student_id: string;
+    total_score: number | null;
+  } | null>(null);
+  const [selectedStudentForReset, setSelectedStudentForReset] = useState<{
+    student_id: string;
+    student_name: string;
+  } | null>(null);
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState<string>('');
 
   useEffect(() => {
     if (!student || !student.isTeacher) {
@@ -60,7 +77,12 @@ export default function TeacherDashboard() {
       return;
     }
     loadData();
-  }, [student, navigate]);
+    
+    // If there's a student ID in URL, select that student
+    if (studentIdFromUrl) {
+      setSelectedStudent(studentIdFromUrl);
+    }
+  }, [student, navigate, studentIdFromUrl]);
 
   const loadData = async () => {
     try {
@@ -137,7 +159,7 @@ export default function TeacherDashboard() {
       // Get all submissions for this student
       const { data: submissionsData } = await supabase
         .from('submissions')
-        .select('*')
+        .select('id, assignment_id, status, total_score, student_id, submitted_at')
         .eq('student_id', studentId);
 
       // Calculate stats for this specific student
@@ -202,6 +224,41 @@ export default function TeacherDashboard() {
         return { text: '🔴 הוחזר לתיקון', color: 'text-destructive' };
       default:
         return { text: status, color: 'text-muted-foreground' };
+    }
+  };
+
+  const handleReturnForRevision = (submission: { id: string; student_id: string; total_score: number | null }) => {
+    setSelectedSubmission(submission);
+    setReturnDialogOpen(true);
+  };
+
+  const handleResetAssignment = (assignmentId: string) => {
+    const student = students.find(s => s.student_id === selectedStudent);
+    if (student) {
+      setSelectedStudentForReset({
+        student_id: student.student_id,
+        student_name: student.student_name
+      });
+      setSelectedAssignmentId(assignmentId);
+      setResetDialogOpen(true);
+    }
+  };
+
+  const handleReturnSuccess = () => {
+    setReturnDialogOpen(false);
+    if (selectedStudent !== 'all') {
+      loadStudentAssignments(selectedStudent);
+    } else {
+      loadData();
+    }
+  };
+
+  const handleResetSuccess = () => {
+    setResetDialogOpen(false);
+    if (selectedStudent !== 'all') {
+      loadStudentAssignments(selectedStudent);
+    } else {
+      loadData();
     }
   };
 
@@ -353,6 +410,8 @@ export default function TeacherDashboard() {
             studentAssignments.map(assignment => {
               const statusDisplay = getStatusDisplay(assignment.submission_status || 'not_started');
               const canViewSubmission = assignment.submission_status === 'submitted' || assignment.submission_status === 'returned_for_revision';
+              const canReturnForRevision = assignment.submission_status === 'submitted';
+              const canReset = assignment.submission_status !== 'not_started';
               
               return (
                 <Card key={assignment.id}>
@@ -371,12 +430,12 @@ export default function TeacherDashboard() {
                           )}
                         </div>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap justify-end">
                         {canViewSubmission && assignment.submission_id ? (
                           <Button 
                             variant="default" 
                             size="sm"
-                            onClick={() => navigate(`/assignment/${assignment.id}/results?submissionId=${assignment.submission_id}`)}
+                            onClick={() => navigate(`/assignment/${assignment.id}/results?submissionId=${assignment.submission_id}&returnToStudent=true`)}
                           >
                             👁️ צפה בהגשה
                           </Button>
@@ -389,6 +448,30 @@ export default function TeacherDashboard() {
                             {assignment.submission_status === 'in_progress' ? '⏳ בתהליך' : '⚪ לא התחיל'}
                           </Button>
                         )}
+                        
+                        {canReturnForRevision && assignment.submission_id && (
+                          <Button 
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => handleReturnForRevision({
+                              id: assignment.submission_id!,
+                              student_id: selectedStudent,
+                              total_score: assignment.submission_score ?? null
+                            })}
+                          >
+                            🔙 החזר לתיקון
+                          </Button>
+                        )}
+                        
+                        {canReset && (
+                          <Button 
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleResetAssignment(assignment.id)}
+                          >
+                            <RotateCcw className="w-4 h-4" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </CardHeader>
@@ -397,6 +480,29 @@ export default function TeacherDashboard() {
             })
           )}
         </div>
+
+        {/* Dialogs */}
+        {returnDialogOpen && selectedSubmission && (
+          <ReturnForRevisionDialog
+            open={returnDialogOpen}
+            onOpenChange={setReturnDialogOpen}
+            submission={selectedSubmission}
+            onSuccess={handleReturnSuccess}
+          />
+        )}
+
+        {resetDialogOpen && selectedStudentForReset && (
+          <ResetAssignmentDialog
+            open={resetDialogOpen}
+            onOpenChange={setResetDialogOpen}
+            student={{
+              student_id: selectedStudentForReset.student_id,
+              student_name: selectedStudentForReset.student_name
+            }}
+            assignmentId={selectedAssignmentId}
+            onSuccess={handleResetSuccess}
+          />
+        )}
       </div>
     </div>
   );

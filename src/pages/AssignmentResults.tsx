@@ -39,8 +39,10 @@ export default function AssignmentResults() {
   const [maxScore, setMaxScore] = useState(0);
   const [loading, setLoading] = useState(true);
   const [studentName, setStudentName] = useState<string>('');
+  const [studentId, setStudentId] = useState<string>('');
   
   const submissionIdFromQuery = searchParams.get('submissionId');
+  const returnToStudent = searchParams.get('returnToStudent'); // New parameter to track return path
   const isTeacherView = student?.isTeacher && submissionIdFromQuery;
 
   useEffect(() => {
@@ -65,16 +67,17 @@ export default function AssignmentResults() {
         
         submission = submissionData;
         
-        // Get student name
+        // Get student name and id
         if (submission) {
           const { data: studentData } = await supabase
             .from('students')
-            .select('student_name')
+            .select('student_name, student_id')
             .eq('student_id', submission.student_id)
             .single();
           
           if (studentData) {
             setStudentName(studentData.student_name);
+            setStudentId(studentData.student_id);
           }
         }
       } else {
@@ -453,9 +456,18 @@ export default function AssignmentResults() {
         {/* Back Button */}
         <div className="flex justify-center pt-4">
           {isTeacherView ? (
-            <Button onClick={() => navigate(`/teacher/assignment/${assignmentId}`)} className="gap-2">
+            <Button 
+              onClick={() => {
+                if (returnToStudent && studentId) {
+                  navigate(`/teacher?student=${studentId}`);
+                } else {
+                  navigate(`/teacher/assignment/${assignmentId}`);
+                }
+              }} 
+              className="gap-2"
+            >
               <ArrowLeft className="w-4 h-4" />
-              חזור לפירוט המשימה
+              {returnToStudent ? 'חזור לתלמיד' : 'חזור לפירוט המשימה'}
             </Button>
           ) : (
             <Button onClick={() => navigate('/student')} className="gap-2">
