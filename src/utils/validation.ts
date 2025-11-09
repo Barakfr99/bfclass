@@ -53,7 +53,8 @@ export function validateZman(userInput: string, correctZman: string): boolean {
     'הווה': ['הווה', 'בינוני'],
     'עתיד': ['עתיד'],
     'ציווי': ['ציווי'],
-    'שםפועל': ['שםפועל', 'שם פועל']
+    'שםפועל': ['שםפועל', 'שם פועל'],
+    'שם פועל': ['שםפועל', 'שם פועל']
   };
   
   const correctNormalized = normalizeHebrew(correctZman);

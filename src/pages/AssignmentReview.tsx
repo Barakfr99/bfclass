@@ -24,9 +24,10 @@ interface SentenceAnswer {
   student_zman: string | null;
   student_guf: string | null;
   correct_shoresh: string;
-  correct_binyan: string;
+  correct_binyan: string | null;
   correct_zman: string;
   correct_guf: string | null;
+  is_practice: boolean;
 }
 
 export default function AssignmentReview() {
@@ -70,21 +71,24 @@ export default function AssignmentReview() {
         return;
       }
 
-      // Get all sentences with answers
+      // Get all sentences with answers (excluding practice sentences)
       const { data: sentences } = await supabase
         .from('assignment_sentences')
         .select('*')
         .eq('assignment_id', assignmentId)
-        .order('sentence_number');
+        .order('sentence_number') as any;
+
+      // Filter out practice sentences
+      const gradedSentences = (sentences || []).filter((s: any) => !s.is_practice);
 
       const sentencesWithAnswers = await Promise.all(
-        (sentences || []).map(async (sentence) => {
+        gradedSentences.map(async (sentence: any) => {
           const { data: answer } = await supabase
             .from('student_answers')
             .select('*')
             .eq('submission_id', submission.id)
             .eq('sentence_id', sentence.id)
-            .single();
+            .maybeSingle();
 
           return {
             sentence_id: sentence.id,
@@ -96,9 +100,10 @@ export default function AssignmentReview() {
             student_zman: answer?.student_zman || null,
             student_guf: answer?.student_guf || null,
             correct_shoresh: sentence.correct_shoresh,
-            correct_binyan: sentence.correct_binyan,
+            correct_binyan: sentence.correct_binyan || null,
             correct_zman: sentence.correct_zman,
-            correct_guf: sentence.correct_guf
+            correct_guf: sentence.correct_guf,
+            is_practice: sentence.is_practice || false
           };
         })
       );
@@ -114,9 +119,13 @@ export default function AssignmentReview() {
   const isAnswerComplete = (answer: SentenceAnswer) => {
     const requiredFields = [
       answer.student_shoresh?.trim(),
-      answer.student_binyan?.trim(),
       answer.student_zman?.trim()
     ];
+    
+    // אם יש בניין, גם הוא נדרש
+    if (answer.correct_binyan) {
+      requiredFields.push(answer.student_binyan?.trim());
+    }
     
     // אם יש גוף, גם הוא נדרש
     if (answer.correct_guf) {
@@ -129,26 +138,50 @@ export default function AssignmentReview() {
   const isAnswerPartial = (answer: SentenceAnswer) => {
     const fields = [
       answer.student_shoresh,
-      answer.student_binyan,
       answer.student_zman
     ];
+    
+    if (answer.correct_binyan) {
+      fields.push(answer.student_binyan);
+    }
     
     if (answer.correct_guf) {
       fields.push(answer.student_guf);
     }
     
     const filledFields = fields.filter(f => f && f.trim()).length;
-    const totalFields = answer.correct_guf ? 4 : 3;
+    const totalFields = (answer.correct_binyan ? 1 : 0) + (answer.correct_guf ? 1 : 0) + 2; // 2 for shoresh and zman
     return filledFields > 0 && filledFields < totalFields;
   };
 
   const getMissingFields = (answer: SentenceAnswer) => {
     const missing = [];
     if (!answer.student_shoresh?.trim()) missing.push('שורש');
-    if (!answer.student_binyan?.trim()) missing.push('בניין');
+    if (answer.correct_binyan && !answer.student_binyan?.trim()) missing.push('בניין');
     if (!answer.student_zman?.trim()) missing.push('זמן');
     if (answer.correct_guf && !answer.student_guf?.trim()) missing.push('גוף');
     return missing;
+  };
+
+  const getTotalFields = (answer: SentenceAnswer) => {
+    return 2 + (answer.correct_binyan ? 1 : 0) + (answer.correct_guf ? 1 : 0);
+  };
+
+  const getFilledFields = (answer: SentenceAnswer) => {
+    const fields = [
+      answer.student_shoresh,
+      answer.student_zman
+    ];
+    
+    if (answer.correct_binyan) {
+      fields.push(answer.student_binyan);
+    }
+    
+    if (answer.correct_guf) {
+      fields.push(answer.student_guf);
+    }
+    
+    return fields.filter(f => f && f.trim()).length;
   };
 
   const completedCount = answers.filter(isAnswerComplete).length;
@@ -176,12 +209,26 @@ export default function AssignmentReview() {
 
       for (const answer of answers) {
         const shoreshCorrect = validateShoresh(answer.student_shoresh || '', answer.correct_shoresh);
-        const binyanCorrect = validateBinyan(answer.student_binyan || '', answer.correct_binyan);
+        const binyanCorrect = answer.correct_binyan 
+          ? validateBinyan(answer.student_binyan || '', answer.correct_binyan)
+          : true; // If no binyan required, it's automatically correct
         const zmanCorrect = validateZman(answer.student_zman || '', answer.correct_zman);
         const gufCorrect = validateGuf(answer.student_guf || '', answer.correct_guf);
         
+        const hasBinyan = answer.correct_binyan !== null;
         const hasGuf = answer.correct_guf !== null;
-        const points = calculateSentenceScore(shoreshCorrect, binyanCorrect, zmanCorrect, gufCorrect, hasGuf);
+        
+        // Calculate points based on number of fields
+        let points = 0;
+        if (!hasBinyan && !hasGuf) {
+          // 2-field task: shoresh + zman
+          const correctCount = (shoreshCorrect ? 1 : 0) + (zmanCorrect ? 1 : 0);
+          points = correctCount * 5; // 5 points per field
+        } else {
+          // 3 or 4-field task: use existing logic
+          points = calculateSentenceScore(shoreshCorrect, binyanCorrect, zmanCorrect, gufCorrect, hasGuf);
+        }
+        
         totalScore += points;
 
         // Update answer with validation results
@@ -189,9 +236,9 @@ export default function AssignmentReview() {
           .from('student_answers')
           .update({
             shoresh_correct: shoreshCorrect,
-            binyan_correct: binyanCorrect,
+            binyan_correct: hasBinyan ? binyanCorrect : null,
             zman_correct: zmanCorrect,
-            guf_correct: gufCorrect,
+            guf_correct: hasGuf ? gufCorrect : null,
             points_earned: points,
             updated_at: new Date().toISOString()
           })
@@ -257,22 +304,15 @@ export default function AssignmentReview() {
                       <p className="font-semibold">משפט {answer.sentence_number}</p>
                       {isAnswerComplete(answer) ? (
                         <p className="text-sm text-success">
-                          ✓ הושלם ({answer.correct_guf ? '4/4' : '3/3'} שדות)
+                          ✓ הושלם ({getFilledFields(answer)}/{getTotalFields(answer)} שדות)
                         </p>
                       ) : isAnswerPartial(answer) ? (
                         <p className="text-sm text-warning">
-                          ⚠️ חלקי ({
-                            [
-                              answer.student_shoresh,
-                              answer.student_binyan,
-                              answer.student_zman,
-                              answer.correct_guf ? answer.student_guf : 'N/A'
-                            ].filter(f => f && f.trim() && f !== 'N/A').length
-                          }/{answer.correct_guf ? '4' : '3'}) - חסרים: {getMissingFields(answer).join(', ')}
+                          ⚠️ חלקי ({getFilledFields(answer)}/{getTotalFields(answer)}) - חסרים: {getMissingFields(answer).join(', ')}
                         </p>
                       ) : (
                         <p className="text-sm text-destructive">
-                          ✗ לא מולא (0/{answer.correct_guf ? '4' : '3'} שדות)
+                          ✗ לא מולא (0/{getTotalFields(answer)} שדות)
                         </p>
                       )}
                     </div>

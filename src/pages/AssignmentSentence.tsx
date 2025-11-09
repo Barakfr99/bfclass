@@ -18,6 +18,8 @@ interface Sentence {
   analyzed_word: string;
   word_position: number;
   correct_guf: string | null;
+  correct_binyan: string | null;
+  is_practice: boolean;
 }
 
 interface Answer {
@@ -60,7 +62,12 @@ export default function AssignmentSentence() {
       .eq('sentence_number', currentSentenceNum)
       .single();
 
-    setSentence(sentenceData);
+    if (sentenceData) {
+      setSentence({
+        ...sentenceData,
+        is_practice: (sentenceData as any).is_practice || false
+      });
+    }
 
     // Get total sentences
     const { data: assignmentData } = await supabase
@@ -183,10 +190,10 @@ export default function AssignmentSentence() {
             <div className="flex justify-between items-center mb-4">
               <CardTitle>תרגיל תורת הצורות</CardTitle>
               <span className="text-sm text-muted-foreground">
-                משפט {currentSentenceNum} מתוך {totalSentences}
+                {sentence?.is_practice ? 'משפט תרגול' : `משפט ${currentSentenceNum} מתוך ${totalSentences}`}
               </span>
             </div>
-            <Progress value={progress} className="h-2" />
+            {!sentence?.is_practice && <Progress value={progress} className="h-2" />}
           </CardHeader>
           <CardContent className="space-y-6">
             {renderSentenceWithHighlight()}
@@ -228,36 +235,38 @@ export default function AssignmentSentence() {
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Label>בניין:</Label>
-                    <Popover>
-                      <PopoverTrigger>
-                        <Info className="w-4 h-4 text-muted-foreground hover:text-primary cursor-help" />
-                      </PopoverTrigger>
-                      <PopoverContent className="w-80">
-                        <div className="space-y-2">
-                          <h4 className="font-semibold">📌 7 בניינים:</h4>
-                          <ul className="text-sm space-y-1">
-                            <li>• פעל / קל</li>
-                            <li>• נפעל</li>
-                            <li>• פיעל</li>
-                            <li>• פועל</li>
-                            <li>• הפעיל</li>
-                            <li>• הופעל</li>
-                            <li>• התפעל</li>
-                          </ul>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
+                {sentence?.correct_binyan !== null && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Label>בניין:</Label>
+                      <Popover>
+                        <PopoverTrigger>
+                          <Info className="w-4 h-4 text-muted-foreground hover:text-primary cursor-help" />
+                        </PopoverTrigger>
+                        <PopoverContent className="w-80">
+                          <div className="space-y-2">
+                            <h4 className="font-semibold">📌 7 בניינים:</h4>
+                            <ul className="text-sm space-y-1">
+                              <li>• פעל / קל</li>
+                              <li>• נפעל</li>
+                              <li>• פיעל</li>
+                              <li>• פועל</li>
+                              <li>• הפעיל</li>
+                              <li>• הופעל</li>
+                              <li>• התפעל</li>
+                            </ul>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <Input
+                      value={answer.student_binyan}
+                      onChange={(e) => setAnswer({ ...answer, student_binyan: e.target.value })}
+                      placeholder="הקלד את התשובה..."
+                      maxLength={15}
+                    />
                   </div>
-                  <Input
-                    value={answer.student_binyan}
-                    onChange={(e) => setAnswer({ ...answer, student_binyan: e.target.value })}
-                    placeholder="הקלד את התשובה..."
-                    maxLength={15}
-                  />
-                </div>
+                )}
 
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
@@ -349,7 +358,11 @@ export default function AssignmentSentence() {
                 onClick={handleNext}
                 className="gap-2"
               >
-                {currentSentenceNum === totalSentences ? 'עבור לסיכום' : 'שמור והמשך'}
+                {sentence?.is_practice 
+                  ? 'המשך למבחן' 
+                  : currentSentenceNum === totalSentences 
+                    ? 'עבור לסיכום' 
+                    : 'שמור והמשך'}
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </div>
