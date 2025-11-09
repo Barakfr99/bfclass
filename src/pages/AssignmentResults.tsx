@@ -6,9 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useStudent } from '@/contexts/StudentContext';
 import { supabase } from '@/integrations/supabase/client';
-import { CheckCircle2, XCircle, Trophy, Home, ArrowLeft } from 'lucide-react';
+import { CheckCircle2, XCircle, Trophy, Home, ArrowLeft, Check } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface SentenceResult {
+  answer_id: string;
   sentence_number: number;
   full_sentence: string;
   analyzed_word: string;
@@ -130,6 +132,7 @@ export default function AssignmentResults() {
             .single();
 
           return {
+            answer_id: answer?.id || '',
             sentence_number: sentence.sentence_number,
             full_sentence: sentence.full_sentence,
             analyzed_word: sentence.analyzed_word,
@@ -170,6 +173,70 @@ export default function AssignmentResults() {
     if (percentage >= 90) return 'bg-success/10 text-success border-success/20';
     if (percentage >= 70) return 'bg-warning/10 text-warning border-warning/20';
     return 'bg-destructive/10 text-destructive border-destructive/20';
+  };
+
+  const approveAnswer = async (answerId: string, field: 'shoresh' | 'binyan' | 'zman' | 'guf') => {
+    try {
+      // Get current answer data
+      const { data: currentAnswer } = await supabase
+        .from('student_answers')
+        .select('*')
+        .eq('id', answerId)
+        .single();
+
+      if (!currentAnswer) {
+        toast.error('לא נמצאה תשובה');
+        return;
+      }
+
+      // Calculate new points
+      const fieldsCorrect = {
+        shoresh_correct: currentAnswer.shoresh_correct,
+        binyan_correct: currentAnswer.binyan_correct,
+        zman_correct: currentAnswer.zman_correct,
+        guf_correct: currentAnswer.guf_correct
+      };
+
+      // Update the specific field
+      fieldsCorrect[`${field}_correct`] = true;
+
+      // Count correct fields
+      const correctCount = Object.values(fieldsCorrect).filter(v => v).length;
+      const newPoints = correctCount * 2.5;
+
+      // Update the answer
+      const { error: updateError } = await supabase
+        .from('student_answers')
+        .update({
+          [`${field}_correct`]: true,
+          points_earned: newPoints
+        })
+        .eq('id', answerId);
+
+      if (updateError) throw updateError;
+
+      // Recalculate total score for submission
+      const { data: allAnswers } = await supabase
+        .from('student_answers')
+        .select('points_earned')
+        .eq('submission_id', submissionIdFromQuery);
+
+      const newTotalScore = allAnswers?.reduce((sum, a) => sum + (a.points_earned || 0), 0) || 0;
+
+      // Update submission total score
+      const { error: submissionError } = await supabase
+        .from('submissions')
+        .update({ total_score: newTotalScore })
+        .eq('id', submissionIdFromQuery);
+
+      if (submissionError) throw submissionError;
+
+      toast.success('התשובה אושרה והציון עודכן');
+      loadResults(); // Reload to show updated data
+    } catch (error) {
+      console.error('Error approving answer:', error);
+      toast.error('שגיאה באישור התשובה');
+    }
   };
 
   if (loading) {
@@ -241,17 +308,30 @@ export default function AssignmentResults() {
                       )}
                       <span className="text-sm font-medium">שורש:</span>
                     </div>
-                    <p className="text-sm pr-6">
+                    <div className="text-sm pr-6 space-y-1">
                       {result.shoresh_correct ? (
                         <span className="text-success">✓ {result.student_shoresh} (2.5 נק')</span>
                       ) : (
                         <>
-                          <span className="text-destructive">✗ שלך: {result.student_shoresh}</span>
-                          <br />
-                          <span className="text-muted-foreground">נכון: {result.correct_shoresh} (0 נק')</span>
+                          <div>
+                            <span className="text-destructive">✗ שלך: {result.student_shoresh}</span>
+                            <br />
+                            <span className="text-muted-foreground">נכון: {result.correct_shoresh} (0 נק')</span>
+                          </div>
+                          {isTeacherView && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="mt-1 h-7 text-xs gap-1"
+                              onClick={() => approveAnswer(result.answer_id, 'shoresh')}
+                            >
+                              <Check className="w-3 h-3" />
+                              אשר תשובה
+                            </Button>
+                          )}
                         </>
                       )}
-                    </p>
+                    </div>
                   </div>
 
                   <div className="space-y-1">
@@ -263,17 +343,30 @@ export default function AssignmentResults() {
                       )}
                       <span className="text-sm font-medium">בניין:</span>
                     </div>
-                    <p className="text-sm pr-6">
+                    <div className="text-sm pr-6 space-y-1">
                       {result.binyan_correct ? (
                         <span className="text-success">✓ {result.student_binyan} (2.5 נק')</span>
                       ) : (
                         <>
-                          <span className="text-destructive">✗ שלך: {result.student_binyan}</span>
-                          <br />
-                          <span className="text-muted-foreground">נכון: {result.correct_binyan} (0 נק')</span>
+                          <div>
+                            <span className="text-destructive">✗ שלך: {result.student_binyan}</span>
+                            <br />
+                            <span className="text-muted-foreground">נכון: {result.correct_binyan} (0 נק')</span>
+                          </div>
+                          {isTeacherView && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="mt-1 h-7 text-xs gap-1"
+                              onClick={() => approveAnswer(result.answer_id, 'binyan')}
+                            >
+                              <Check className="w-3 h-3" />
+                              אשר תשובה
+                            </Button>
+                          )}
                         </>
                       )}
-                    </p>
+                    </div>
                   </div>
 
                   <div className="space-y-1">
@@ -285,17 +378,30 @@ export default function AssignmentResults() {
                       )}
                       <span className="text-sm font-medium">זמן:</span>
                     </div>
-                    <p className="text-sm pr-6">
+                    <div className="text-sm pr-6 space-y-1">
                       {result.zman_correct ? (
                         <span className="text-success">✓ {result.student_zman} (2.5 נק')</span>
                       ) : (
                         <>
-                          <span className="text-destructive">✗ שלך: {result.student_zman}</span>
-                          <br />
-                          <span className="text-muted-foreground">נכון: {result.correct_zman} (0 נק')</span>
+                          <div>
+                            <span className="text-destructive">✗ שלך: {result.student_zman}</span>
+                            <br />
+                            <span className="text-muted-foreground">נכון: {result.correct_zman} (0 נק')</span>
+                          </div>
+                          {isTeacherView && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="mt-1 h-7 text-xs gap-1"
+                              onClick={() => approveAnswer(result.answer_id, 'zman')}
+                            >
+                              <Check className="w-3 h-3" />
+                              אשר תשובה
+                            </Button>
+                          )}
                         </>
                       )}
-                    </p>
+                    </div>
                   </div>
 
                   <div className="space-y-1">
@@ -307,17 +413,30 @@ export default function AssignmentResults() {
                       )}
                       <span className="text-sm font-medium">גוף:</span>
                     </div>
-                    <p className="text-sm pr-6">
+                    <div className="text-sm pr-6 space-y-1">
                       {result.guf_correct ? (
                         <span className="text-success">✓ {result.student_guf} (2.5 נק')</span>
                       ) : (
                         <>
-                          <span className="text-destructive">✗ שלך: {result.student_guf}</span>
-                          <br />
-                          <span className="text-muted-foreground">נכון: {result.correct_guf} (0 נק')</span>
+                          <div>
+                            <span className="text-destructive">✗ שלך: {result.student_guf}</span>
+                            <br />
+                            <span className="text-muted-foreground">נכון: {result.correct_guf} (0 נק')</span>
+                          </div>
+                          {isTeacherView && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="mt-1 h-7 text-xs gap-1"
+                              onClick={() => approveAnswer(result.answer_id, 'guf')}
+                            >
+                              <Check className="w-3 h-3" />
+                              אשר תשובה
+                            </Button>
+                          )}
                         </>
                       )}
-                    </p>
+                    </div>
                   </div>
                 </div>
 
