@@ -109,21 +109,38 @@ export default function AssignmentResults() {
 
       setTotalScore(submission.total_score || 0);
 
-      // Get assignment details
+      // Get all sentences first
+      const { data: sentences } = await supabase
+        .from('assignment_sentences')
+        .select('*')
+        .eq('assignment_id', assignmentId)
+        .order('sentence_number');
+
+      // Get assignment details and calculate max score dynamically
       const { data: assignment } = await supabase
         .from('assignments')
         .select('total_sentences')
         .eq('id', assignmentId)
         .single();
 
-      setMaxScore((assignment?.total_sentences || 0) * 10);
+      // Calculate max score based on sentence types
+      // Check first sentence to determine scoring type
+      const firstSentence = sentences && sentences.length > 0 ? sentences[0] : null;
+      const hasBinyan = firstSentence && firstSentence.correct_binyan !== null;
+      const hasGuf = firstSentence && firstSentence.correct_guf !== null;
+      
+      let calculatedMaxScore = 0;
+      if (!hasBinyan && !hasGuf) {
+        // 2-field task (shoresh + zman): 6.25 points per sentence for 100 total
+        calculatedMaxScore = (assignment?.total_sentences || 0) * 6.25;
+      } else {
+        // 3 or 4-field task: 10 points per sentence
+        calculatedMaxScore = (assignment?.total_sentences || 0) * 10;
+      }
+      
+      setMaxScore(calculatedMaxScore);
 
-      // Get all sentences with results
-      const { data: sentences } = await supabase
-        .from('assignment_sentences')
-        .select('*')
-        .eq('assignment_id', assignmentId)
-        .order('sentence_number');
+      // Get results for all sentences
 
       const sentencesWithResults = await Promise.all(
         (sentences || []).map(async (sentence) => {
@@ -203,9 +220,32 @@ export default function AssignmentResults() {
       // Update the specific field
       fieldsCorrect[`${field}_correct`] = true;
 
-      // Count correct fields
-      const correctCount = Object.values(fieldsCorrect).filter(v => v).length;
-      const newPoints = correctCount * 2.5;
+      // Get the sentence to determine how many fields are required
+      const { data: sentenceData } = await supabase
+        .from('assignment_sentences')
+        .select('correct_binyan, correct_guf')
+        .eq('id', currentAnswer.sentence_id)
+        .single();
+
+      const hasBinyan = sentenceData?.correct_binyan !== null;
+      const hasGuf = sentenceData?.correct_guf !== null;
+
+      // Count correct fields (only count fields that are required)
+      let correctCount = 0;
+      if (fieldsCorrect.shoresh_correct) correctCount++;
+      if (hasBinyan && fieldsCorrect.binyan_correct) correctCount++;
+      if (fieldsCorrect.zman_correct) correctCount++;
+      if (hasGuf && fieldsCorrect.guf_correct) correctCount++;
+
+      // Calculate points based on task type
+      let newPoints = 0;
+      if (!hasBinyan && !hasGuf) {
+        // 2-field task: 6.25 for both correct, 3.125 for one correct
+        newPoints = correctCount * 3.125;
+      } else {
+        // 3 or 4-field task: 2.5 points per correct field
+        newPoints = correctCount * 2.5;
+      }
 
       // Update the answer
       const { error: updateError } = await supabase
@@ -297,7 +337,7 @@ export default function AssignmentResults() {
                     </p>
                   </div>
                   <Badge className={getScoreBadgeColor(result.points_earned)}>
-                    {result.points_earned}/10
+                    {result.points_earned.toFixed(2)}/{result.correct_binyan === null && result.correct_guf === null ? '6.25' : '10'}
                   </Badge>
                 </div>
 

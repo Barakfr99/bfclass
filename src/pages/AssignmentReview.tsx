@@ -221,9 +221,9 @@ export default function AssignmentReview() {
         // Calculate points based on number of fields
         let points = 0;
         if (!hasBinyan && !hasGuf) {
-          // 2-field task: shoresh + zman
+          // 2-field task: shoresh + zman (for 100 total: 16 sentences × 6.25 = 100)
           const correctCount = (shoreshCorrect ? 1 : 0) + (zmanCorrect ? 1 : 0);
-          points = correctCount * 5; // 5 points per field
+          points = correctCount * 3.125; // 6.25 points for both correct, 3.125 for one correct
         } else {
           // 3 or 4-field task: use existing logic
           points = calculateSentenceScore(shoreshCorrect, binyanCorrect, zmanCorrect, gufCorrect, hasGuf);
