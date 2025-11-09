@@ -112,8 +112,8 @@ export default function AssignmentReview() {
   };
 
   const isAnswerComplete = (answer: SentenceAnswer) => {
-    return answer.student_shoresh && answer.student_binyan && 
-           answer.student_zman && answer.student_guf;
+    return answer.student_shoresh?.trim() && answer.student_binyan?.trim() && 
+           answer.student_zman?.trim() && answer.student_guf?.trim();
   };
 
   const isAnswerPartial = (answer: SentenceAnswer) => {
@@ -122,8 +122,17 @@ export default function AssignmentReview() {
       answer.student_binyan,
       answer.student_zman,
       answer.student_guf
-    ].filter(Boolean).length;
+    ].filter(f => f && f.trim()).length;
     return filledFields > 0 && filledFields < 4;
+  };
+
+  const getMissingFields = (answer: SentenceAnswer) => {
+    const missing = [];
+    if (!answer.student_shoresh?.trim()) missing.push('שורש');
+    if (!answer.student_binyan?.trim()) missing.push('בניין');
+    if (!answer.student_zman?.trim()) missing.push('זמן');
+    if (!answer.student_guf?.trim()) missing.push('גוף');
+    return missing;
   };
 
   const completedCount = answers.filter(isAnswerComplete).length;
@@ -235,18 +244,18 @@ export default function AssignmentReview() {
                     <div>
                       <p className="font-semibold">משפט {answer.sentence_number}</p>
                       {isAnswerComplete(answer) ? (
-                        <p className="text-sm text-success">הושלם</p>
+                        <p className="text-sm text-success">✓ הושלם (4/4 שדות)</p>
                       ) : isAnswerPartial(answer) ? (
                         <p className="text-sm text-warning">
-                          הושלם חלקית ({[
+                          ⚠️ חלקי ({[
                             answer.student_shoresh,
                             answer.student_binyan,
                             answer.student_zman,
                             answer.student_guf
-                          ].filter(Boolean).length}/4)
+                          ].filter(f => f && f.trim()).length}/4) - חסרים: {getMissingFields(answer).join(', ')}
                         </p>
                       ) : (
-                        <p className="text-sm text-destructive">חסר תשובה (לחץ לעריכה)</p>
+                        <p className="text-sm text-destructive">✗ לא מולא (0/4 שדות)</p>
                       )}
                     </div>
                   </div>
@@ -255,13 +264,23 @@ export default function AssignmentReview() {
             ))}
 
             <div className="pt-6 border-t space-y-4">
-              <div className="text-center">
+              <div className="text-center space-y-2">
                 <p className="text-lg font-semibold">
-                  סה"כ משפטים שהושלמו: {completedCount}/{totalSentences}
+                  הושלמו {completedCount} מתוך {totalSentences} משפטים
                 </p>
                 {!canSubmit && (
-                  <p className="text-sm text-warning mt-2">
-                    ⚠️ שים לב: לאחר ההגשה לא ניתן לערוך!
+                  <div className="space-y-1">
+                    <p className="text-sm text-destructive font-medium">
+                      ⚠️ יש להשלים את כל המשפטים לפני ההגשה
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      לחץ על משפט כדי לערוך אותו
+                    </p>
+                  </div>
+                )}
+                {canSubmit && (
+                  <p className="text-sm text-success">
+                    ✓ כל המשפטים מולאו - ניתן להגיש את התרגיל
                   </p>
                 )}
               </div>

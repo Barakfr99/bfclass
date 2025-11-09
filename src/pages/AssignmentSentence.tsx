@@ -109,6 +109,14 @@ export default function AssignmentSentence() {
           student_zman: existingAnswer.student_zman || '',
           student_guf: existingAnswer.student_guf || ''
         });
+      } else {
+        // אם אין תשובה קיימת, וודא שהשדות ריקים
+        setAnswer({
+          student_shoresh: '',
+          student_binyan: '',
+          student_zman: '',
+          student_guf: ''
+        });
       }
     }
   };
@@ -131,6 +139,18 @@ export default function AssignmentSentence() {
   };
 
   const handleNext = async () => {
+    // בדיקה אם כל השדות מולאו
+    const allFieldsFilled = 
+      answer.student_shoresh.trim() !== '' &&
+      answer.student_binyan.trim() !== '' &&
+      answer.student_zman.trim() !== '' &&
+      answer.student_guf.trim() !== '';
+
+    if (!allFieldsFilled) {
+      toast.error('יש למלא את כל השדות לפני המעבר למשפט הבא');
+      return;
+    }
+
     await saveAnswer();
     
     if (currentSentenceNum < totalSentences) {
@@ -165,6 +185,21 @@ export default function AssignmentSentence() {
   };
 
   const progress = (currentSentenceNum / totalSentences) * 100;
+  
+  // בדיקה אם כל השדות מולאו
+  const allFieldsFilled = 
+    answer.student_shoresh.trim() !== '' &&
+    answer.student_binyan.trim() !== '' &&
+    answer.student_zman.trim() !== '' &&
+    answer.student_guf.trim() !== '';
+
+  // פונקציה לבדיקה אם שדה ריק
+  const isFieldEmpty = (value: string) => value.trim() === '';
+  
+  // סגנון לשדות ריקים
+  const getFieldClassName = (value: string) => {
+    return isFieldEmpty(value) ? 'border-destructive focus-visible:ring-destructive' : '';
+  };
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
@@ -216,7 +251,11 @@ export default function AssignmentSentence() {
                     onChange={(e) => setAnswer({ ...answer, student_shoresh: e.target.value })}
                     placeholder="הקלד את התשובה..."
                     maxLength={15}
+                    className={getFieldClassName(answer.student_shoresh)}
                   />
+                  {isFieldEmpty(answer.student_shoresh) && (
+                    <p className="text-xs text-destructive mt-1">שדה זה הוא חובה</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -250,7 +289,11 @@ export default function AssignmentSentence() {
                     onChange={(e) => setAnswer({ ...answer, student_binyan: e.target.value })}
                     placeholder="הקלד את התשובה..."
                     maxLength={15}
+                    className={getFieldClassName(answer.student_binyan)}
                   />
+                  {isFieldEmpty(answer.student_binyan) && (
+                    <p className="text-xs text-destructive mt-1">שדה זה הוא חובה</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -279,7 +322,11 @@ export default function AssignmentSentence() {
                     onChange={(e) => setAnswer({ ...answer, student_zman: e.target.value })}
                     placeholder="הקלד את התשובה..."
                     maxLength={15}
+                    className={getFieldClassName(answer.student_zman)}
                   />
+                  {isFieldEmpty(answer.student_zman) && (
+                    <p className="text-xs text-destructive mt-1">שדה זה הוא חובה</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -306,7 +353,11 @@ export default function AssignmentSentence() {
                     onChange={(e) => setAnswer({ ...answer, student_guf: e.target.value })}
                     placeholder="הקלד את התשובה..."
                     maxLength={15}
+                    className={getFieldClassName(answer.student_guf)}
                   />
+                  {isFieldEmpty(answer.student_guf) && (
+                    <p className="text-xs text-destructive mt-1">שדה זה הוא חובה</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -321,7 +372,11 @@ export default function AssignmentSentence() {
                 <ArrowLeft className="w-4 h-4" />
                 משפט קודם
               </Button>
-              <Button onClick={handleNext} className="gap-2">
+              <Button 
+                onClick={handleNext} 
+                disabled={!allFieldsFilled}
+                className="gap-2"
+              >
                 {currentSentenceNum === totalSentences ? 'עבור לסיכום' : 'שמור והמשך'}
                 <ArrowRight className="w-4 h-4" />
               </Button>
