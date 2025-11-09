@@ -543,7 +543,8 @@ export default function TeacherDashboard() {
             onOpenChange={setResetDialogOpen}
             student={{
               student_id: selectedStudentForReset.student_id,
-              student_name: selectedStudentForReset.student_name
+              student_name: selectedStudentForReset.student_name,
+              submission: selectedStudentForReset.submission
             }}
             assignmentId={selectedAssignmentId}
             onSuccess={handleResetSuccess}
