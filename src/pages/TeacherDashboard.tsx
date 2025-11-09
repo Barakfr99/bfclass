@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useStudent } from '@/contexts/StudentContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -407,37 +408,69 @@ export default function TeacherDashboard() {
             ))
           ) : (
             // Show assignments filtered by selected student
-            studentAssignments.map(assignment => {
+            studentAssignments.map((assignment, index) => {
               const statusDisplay = getStatusDisplay(assignment.submission_status || 'not_started');
-              const canViewSubmission = assignment.submission_status === 'submitted' || assignment.submission_status === 'returned_for_revision';
-              const canReturnForRevision = assignment.submission_status === 'submitted';
-              const canReset = assignment.submission_status !== 'not_started';
+              const status = assignment.submission_status || 'not_started';
+              const canViewSubmission = status === 'submitted' || status === 'returned_for_revision';
+              const canReturnForRevision = status === 'submitted';
+              const canReset = status !== 'not_started';
               
               return (
                 <Card key={assignment.id}>
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div className="space-y-2">
-                        <CardTitle className="text-xl">📝 {assignment.title}</CardTitle>
-                        <div className="flex gap-4 text-sm">
-                          <span className="text-muted-foreground">📅 {new Date(assignment.created_at).toLocaleDateString('he-IL')}</span>
-                          <span className={statusDisplay.color}>{statusDisplay.text}</span>
-                          {assignment.submission_score !== undefined && assignment.submission_score !== null && (
-                            <span className="text-muted-foreground">📊 ציון: {assignment.submission_score}</span>
+                  <CardContent className="pt-6">
+                    <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <span className="text-lg font-semibold">{index + 1}.</span>
+                          <div>
+                            <p className="font-semibold text-lg">📝 {assignment.title}</p>
+                            <p className="text-sm text-muted-foreground">
+                              נוצר: {new Date(assignment.created_at).toLocaleDateString('he-IL')}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex flex-wrap gap-2 items-center">
+                          <Badge className={statusDisplay.color}>
+                            {statusDisplay.text}
+                          </Badge>
+                          
+                          {status === 'submitted' && assignment.submission_score !== null && assignment.submission_score !== undefined && (
+                            <Badge variant="outline" className="bg-primary/5">
+                              ציון: {assignment.submission_score}
+                            </Badge>
                           )}
+                          
+                          {status === 'returned_for_revision' && assignment.submission_score !== null && assignment.submission_score !== undefined && (
+                            <Badge variant="outline" className="bg-warning/10">
+                              ציון נוכחי: {assignment.submission_score}
+                            </Badge>
+                          )}
+                          
                           {assignment.submitted_at && (
-                            <span className="text-muted-foreground">⏰ הוגש: {new Date(assignment.submitted_at).toLocaleDateString('he-IL')}</span>
+                            <span className="text-xs text-muted-foreground">
+                              הוגש ב: {new Date(assignment.submitted_at).toLocaleString('he-IL')}
+                            </span>
                           )}
                         </div>
                       </div>
-                      <div className="flex gap-2 flex-wrap justify-end">
+                      
+                      <div className="flex flex-wrap gap-2">
                         {canViewSubmission && assignment.submission_id ? (
                           <Button 
-                            variant="default" 
+                            variant="outline" 
                             size="sm"
                             onClick={() => navigate(`/assignment/${assignment.id}/results?submissionId=${assignment.submission_id}&returnToStudent=true`)}
                           >
                             👁️ צפה בהגשה
+                          </Button>
+                        ) : status === 'in_progress' ? (
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            disabled
+                          >
+                            ⏳ בתהליך
                           </Button>
                         ) : (
                           <Button 
@@ -445,13 +478,13 @@ export default function TeacherDashboard() {
                             size="sm"
                             disabled
                           >
-                            {assignment.submission_status === 'in_progress' ? '⏳ בתהליך' : '⚪ לא התחיל'}
+                            ⚪ לא התחיל
                           </Button>
                         )}
                         
                         {canReturnForRevision && assignment.submission_id && (
                           <Button 
-                            variant="secondary"
+                            variant="default"
                             size="sm"
                             onClick={() => handleReturnForRevision({
                               id: assignment.submission_id!,
@@ -474,7 +507,7 @@ export default function TeacherDashboard() {
                         )}
                       </div>
                     </div>
-                  </CardHeader>
+                  </CardContent>
                 </Card>
               );
             })
