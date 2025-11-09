@@ -48,6 +48,7 @@ export default function TeacherDashboard() {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [students, setStudents] = useState<StudentInfo[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<string>('all');
+  const [selectedStudentName, setSelectedStudentName] = useState<string>('');
   const [studentAssignments, setStudentAssignments] = useState<StudentAssignment[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -171,12 +172,17 @@ export default function TeacherDashboard() {
 
   useEffect(() => {
     if (selectedStudent !== 'all') {
+      const student = students.find(s => s.student_id === selectedStudent);
+      if (student) {
+        setSelectedStudentName(student.student_name);
+      }
       loadStudentAssignments(selectedStudent);
     } else {
+      setSelectedStudentName('');
       // Reload general stats when switching back to "all"
       loadData();
     }
-  }, [selectedStudent]);
+  }, [selectedStudent, students]);
 
   const getStatusDisplay = (status: string) => {
     switch (status) {
@@ -224,7 +230,9 @@ export default function TeacherDashboard() {
                   <p className="text-sm text-muted-foreground">
                     {selectedStudent === 'all' ? 'תלמידים' : 'תלמיד'}
                   </p>
-                  <p className="text-3xl font-bold">{stats.totalStudents}</p>
+                  <p className="text-3xl font-bold">
+                    {selectedStudent === 'all' ? stats.totalStudents : selectedStudentName}
+                  </p>
                 </div>
                 <Users className="w-8 h-8 text-primary" />
               </div>
