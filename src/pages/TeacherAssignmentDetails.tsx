@@ -6,12 +6,13 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { useStudent } from '@/contexts/StudentContext';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Search, Eye, RotateCcw, Trash2, TrendingUp, FileText } from 'lucide-react';
+import { ArrowLeft, Search, Eye, RotateCcw, Trash2, TrendingUp, FileText, StickyNote } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import ReturnForRevisionDialog from '@/components/ReturnForRevisionDialog';
 import ResetAssignmentDialog from '@/components/ResetAssignmentDialog';
 import StudentProgressDialog from '@/components/StudentProgressDialog';
 import AssignmentPreviewDialog from '@/components/AssignmentPreviewDialog';
+import StudentNotesDialog from '@/components/StudentNotesDialog';
 
 interface Student {
   id: string;
@@ -30,9 +31,17 @@ interface Submission {
   created_at: string;
 }
 
+interface StudentNote {
+  id: string;
+  student_id: string;
+  note_text: string | null;
+  tags: string[];
+}
+
 interface StudentWithSubmission extends Student {
   submission?: Submission;
   completedSentences?: number;
+  notes?: StudentNote;
 }
 
 interface Assignment {
@@ -59,6 +68,7 @@ export default function TeacherAssignmentDetails() {
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [progressDialogOpen, setProgressDialogOpen] = useState(false);
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
+  const [notesDialogOpen, setNotesDialogOpen] = useState(false);
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<StudentWithSubmission | null>(null);
 
@@ -104,10 +114,16 @@ export default function TeacherAssignmentDetails() {
         .select('*')
         .eq('assignment_id', assignmentId);
 
+      // Load all student notes
+      const { data: notesData } = await supabase
+        .from('student_notes')
+        .select('*');
+
       // Combine students with their submissions
       const studentsWithSubmissions = await Promise.all(
         (studentsData || []).map(async (student) => {
           const submission = submissionsData?.find(s => s.student_id === student.student_id);
+          const notes = notesData?.find(n => n.student_id === student.student_id);
           
           // If in progress, count completed sentences
           let completedSentences = 0;
@@ -128,7 +144,8 @@ export default function TeacherAssignmentDetails() {
           return {
             ...student,
             submission,
-            completedSentences
+            completedSentences,
+            notes
           };
         })
       );
@@ -210,6 +227,11 @@ export default function TeacherAssignmentDetails() {
   const handleViewProgress = (student: StudentWithSubmission) => {
     setSelectedStudent(student);
     setProgressDialogOpen(true);
+  };
+
+  const handleOpenNotes = (student: StudentWithSubmission) => {
+    setSelectedStudent(student);
+    setNotesDialogOpen(true);
   };
 
   const handleViewSubmission = (submissionId: string) => {
@@ -365,6 +387,28 @@ export default function TeacherAssignmentDetails() {
                           </Badge>
                         )}
                         
+                        {/* Display student tags */}
+                        {student.notes?.tags && student.notes.tags.length > 0 && (
+                          <>
+                            {student.notes.tags.map(tag => {
+                              const tagConfig = {
+                                'needs_help': { label: '🆘 צריך עזרה', color: 'bg-destructive' },
+                                'excellent': { label: '⭐ מצטיין', color: 'bg-success' },
+                                'follow_up': { label: '📌 למעקב', color: 'bg-warning' },
+                                'improved': { label: '📈 השתפר', color: 'bg-primary' },
+                                'struggling': { label: '💪 מתקשה', color: 'bg-orange-500' },
+                                'motivated': { label: '🔥 מוטיבציה גבוהה', color: 'bg-green-500' },
+                              }[tag];
+                              
+                              return tagConfig ? (
+                                <Badge key={tag} className={tagConfig.color}>
+                                  {tagConfig.label}
+                                </Badge>
+                              ) : null;
+                            })}
+                          </>
+                        )}
+                        
                         {student.submission?.submitted_at && (
                           <span className="text-xs text-muted-foreground">
                             הוגש ב: {new Date(student.submission.submitted_at).toLocaleString('he-IL')}
@@ -380,6 +424,22 @@ export default function TeacherAssignmentDetails() {
                     </div>
                     
                     <div className="flex flex-wrap gap-2">
+                      {/* Notes Button - always available */}
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleOpenNotes(student)}
+                        className="gap-1"
+                      >
+                        <StickyNote className="w-4 h-4" />
+                        הערות
+                        {student.notes?.tags && student.notes.tags.length > 0 && (
+                          <Badge variant="secondary" className="mr-1 h-5 px-1">
+                            {student.notes.tags.length}
+                          </Badge>
+                        )}
+                      </Button>
+                      
                       {/* View Submission - only if submitted or returned */}
                       {(status === 'submitted' || status === 'returned_for_revision') && student.submission && (
                         <Button 
@@ -456,17 +516,16 @@ export default function TeacherAssignmentDetails() {
         assignmentTitle={assignment.title}
       />
       
-      {selectedSubmission && (
-        <ReturnForRevisionDialog
-          open={returnDialogOpen}
-          onOpenChange={setReturnDialogOpen}
-          submission={selectedSubmission}
-          onSuccess={loadData}
-        />
-      )}
-      
       {selectedStudent && (
         <>
+          <StudentNotesDialog
+            open={notesDialogOpen}
+            onOpenChange={setNotesDialogOpen}
+            studentId={selectedStudent.student_id}
+            studentName={selectedStudent.student_name}
+            onNotesUpdated={loadData}
+          />
+          
           <ResetAssignmentDialog
             open={resetDialogOpen}
             onOpenChange={setResetDialogOpen}
@@ -482,6 +541,15 @@ export default function TeacherAssignmentDetails() {
             assignment={assignment}
           />
         </>
+      )}
+      
+      {selectedSubmission && (
+        <ReturnForRevisionDialog
+          open={returnDialogOpen}
+          onOpenChange={setReturnDialogOpen}
+          submission={selectedSubmission}
+          onSuccess={loadData}
+        />
       )}
     </div>
   );

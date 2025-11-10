@@ -184,6 +184,41 @@ export type Database = {
           },
         ]
       }
+      student_notes: {
+        Row: {
+          created_at: string | null
+          id: string
+          note_text: string | null
+          student_id: string
+          tags: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          note_text?: string | null
+          student_id: string
+          tags?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          note_text?: string | null
+          student_id?: string
+          tags?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_notes_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["student_id"]
+          },
+        ]
+      }
       students: {
         Row: {
           created_at: string | null
