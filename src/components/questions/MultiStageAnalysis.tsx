@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { highlightWord } from '@/utils/textHighlight';
 
 interface MultiStageAnalysisProps {
   questionData: any;
@@ -161,10 +162,8 @@ export default function MultiStageAnalysis({
                       disabled={selectedVerbs.length >= 3 && !isVerbSelected(sentence.sentence_number, sentence.highlighted_word)}
                     />
                     <div className="flex-1">
-                      <p className="text-lg">{sentence.text}</p>
-                      <p className="text-sm text-primary font-semibold mt-1">
-                        מילה מודגשת: {sentence.highlighted_word}
-                      </p>
+                      <div className="text-sm text-muted-foreground mb-1">({sentence.sentence_number})</div>
+                      <p className="text-lg">{highlightWord(sentence.text, sentence.highlighted_word)}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -192,10 +191,8 @@ export default function MultiStageAnalysis({
                       disabled={selectedInfinitives.length >= 2 && !isInfinitiveSelected(sentence.sentence_number, sentence.highlighted_word)}
                     />
                     <div className="flex-1">
-                      <p className="text-lg">{sentence.text}</p>
-                      <p className="text-sm text-primary font-semibold mt-1">
-                        מילה מודגשת: {sentence.highlighted_word}
-                      </p>
+                      <div className="text-sm text-muted-foreground mb-1">({sentence.sentence_number})</div>
+                      <p className="text-lg">{highlightWord(sentence.text, sentence.highlighted_word)}</p>
                     </div>
                   </div>
                 </CardContent>

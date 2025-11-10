@@ -81,12 +81,14 @@ export default function CompareVerbPairs({
 
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-semibold">
-        {questionData.instruction}
-      </h3>
+      <div className="space-y-2">
+        <h3 className="text-lg font-semibold whitespace-pre-line">
+          {questionData.instruction}
+        </h3>
+      </div>
 
       <RadioGroup value={selectedPair?.toString() || ''} onValueChange={(value) => setSelectedPair(Number(value))}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-4">
           {questionData.pairs.map((pair: any) => (
             <Card 
               key={pair.pair_number}
@@ -98,19 +100,20 @@ export default function CompareVerbPairs({
               onClick={() => setSelectedPair(pair.pair_number)}
             >
               <CardContent className="p-4">
-                <div className="flex items-center gap-3">
+                <div className="flex items-start gap-3">
                   <RadioGroupItem 
                     value={pair.pair_number.toString()} 
                     id={`pair-${pair.pair_number}`}
+                    className="mt-1"
                   />
                   <Label 
                     htmlFor={`pair-${pair.pair_number}`}
-                    className="text-xl cursor-pointer flex-1"
+                    className="cursor-pointer flex-1"
                   >
-                    <div className="flex justify-between items-center">
-                      <span>{pair.verb1.text}</span>
-                      <span className="text-muted-foreground mx-2">-</span>
-                      <span>{pair.verb2.text}</span>
+                    <div className="mb-2 text-sm text-muted-foreground">זוג {pair.pair_number}</div>
+                    <div className="space-y-1 text-lg">
+                      <div>{pair.sentence1_full || pair.verb1.sentence}</div>
+                      <div>{pair.sentence2_full || pair.verb2.sentence}</div>
                     </div>
                   </Label>
                 </div>

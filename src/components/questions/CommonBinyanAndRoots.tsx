@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { highlightWord } from '@/utils/textHighlight';
 
 interface CommonBinyanAndRootsProps {
   questionData: any;
@@ -107,10 +108,8 @@ export default function CommonBinyanAndRoots({
         {questionData.sentences.map((sentence: any) => (
           <Card key={sentence.sentence_number}>
             <CardContent className="p-4">
-              <p className="text-lg mb-2">{sentence.text}</p>
-              <p className="text-sm text-primary font-semibold">
-                מילה מודגשת: {sentence.highlighted_word}
-              </p>
+              <div className="text-sm text-muted-foreground mb-2">({sentence.sentence_number})</div>
+              <p className="text-lg">{highlightWord(sentence.text, sentence.highlighted_word)}</p>
             </CardContent>
           </Card>
         ))}
