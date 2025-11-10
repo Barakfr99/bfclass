@@ -108,9 +108,9 @@ export default function CompareVerbPairs({
                     className="text-xl cursor-pointer flex-1"
                   >
                     <div className="flex justify-between items-center">
-                      <span>{pair.verb1}</span>
+                      <span>{pair.verb1.text}</span>
                       <span className="text-muted-foreground mx-2">-</span>
-                      <span>{pair.verb2}</span>
+                      <span>{pair.verb2.text}</span>
                     </div>
                   </Label>
                 </div>
