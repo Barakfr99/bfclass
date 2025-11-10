@@ -10,7 +10,8 @@ import {
   validateShoresh, 
   validateBinyan, 
   validateZman, 
-  validateGuf
+  validateGuf,
+  validateAdvancedQuestion
 } from '@/utils/validation';
 
 interface SentenceAnswer {
@@ -27,6 +28,9 @@ interface SentenceAnswer {
   correct_zman: string;
   correct_guf: string | null;
   is_practice: boolean;
+  question_data?: any;
+  answer_data?: any;
+  question_type?: string;
 }
 
 export default function AssignmentReview() {
@@ -102,7 +106,10 @@ export default function AssignmentReview() {
             correct_binyan: sentence.correct_binyan || null,
             correct_zman: sentence.correct_zman,
             correct_guf: sentence.correct_guf,
-            is_practice: sentence.is_practice || false
+            is_practice: sentence.is_practice || false,
+            question_data: sentence.question_data,
+            answer_data: answer?.answer_data,
+            question_type: answer?.question_type
           };
         })
       );
@@ -116,6 +123,12 @@ export default function AssignmentReview() {
   };
 
   const isAnswerComplete = (answer: SentenceAnswer) => {
+    // שאלה מורכבת
+    if (answer.question_data) {
+      return answer.answer_data !== null && answer.answer_data !== undefined;
+    }
+    
+    // שאלה רגילה
     const requiredFields = [
       answer.student_shoresh?.trim(),
       answer.student_zman?.trim()
@@ -209,35 +222,56 @@ export default function AssignmentReview() {
       const answerUpdates = [];
 
       for (const answer of answers) {
-        const shoreshCorrect = validateShoresh(answer.student_shoresh || '', answer.correct_shoresh);
-        const binyanCorrect = answer.correct_binyan 
-          ? validateBinyan(answer.student_binyan || '', answer.correct_binyan)
-          : true;
-        const zmanCorrect = validateZman(answer.student_zman || '', answer.correct_zman);
-        const gufCorrect = validateGuf(answer.student_guf || '', answer.correct_guf);
-        
-        const hasBinyan = answer.correct_binyan !== null;
-        const hasGuf = answer.correct_guf !== null;
-        
-        // Count fields for this sentence
-        const fieldsInSentence = 2 + (hasBinyan ? 1 : 0) + (hasGuf ? 1 : 0);
-        totalFields += fieldsInSentence;
-        
-        // Count correct fields
-        if (shoreshCorrect) totalCorrectFields++;
-        if (hasBinyan && binyanCorrect) totalCorrectFields++;
-        if (zmanCorrect) totalCorrectFields++;
-        if (hasGuf && gufCorrect) totalCorrectFields++;
-        
-        // Store validation results for this answer
-        answerUpdates.push({
-          sentence_id: answer.sentence_id,
-          shoresh_correct: shoreshCorrect,
-          binyan_correct: hasBinyan ? binyanCorrect : null,
-          zman_correct: zmanCorrect,
-          guf_correct: hasGuf ? gufCorrect : null
-        });
-
+        // בדיקה אם זו שאלה מורכבת
+        if (answer.question_data) {
+          const validationResult = validateAdvancedQuestion(
+            answer.question_data,
+            answer.answer_data
+          );
+          
+          // הוסף את הציון המלא (כבר בסולם 0-10)
+          totalCorrectFields += validationResult.score;
+          totalFields += 10;
+          
+          answerUpdates.push({
+            sentence_id: answer.sentence_id,
+            is_advanced: true,
+            score: validationResult.score,
+            partial_scores: validationResult.partial_scores || null,
+            is_correct: validationResult.correct
+          });
+        } else {
+          // שאלה רגילה
+          const shoreshCorrect = validateShoresh(answer.student_shoresh || '', answer.correct_shoresh);
+          const binyanCorrect = answer.correct_binyan 
+            ? validateBinyan(answer.student_binyan || '', answer.correct_binyan)
+            : true;
+          const zmanCorrect = validateZman(answer.student_zman || '', answer.correct_zman);
+          const gufCorrect = validateGuf(answer.student_guf || '', answer.correct_guf);
+          
+          const hasBinyan = answer.correct_binyan !== null;
+          const hasGuf = answer.correct_guf !== null;
+          
+          // Count fields for this sentence
+          const fieldsInSentence = 2 + (hasBinyan ? 1 : 0) + (hasGuf ? 1 : 0);
+          totalFields += fieldsInSentence;
+          
+          // Count correct fields
+          if (shoreshCorrect) totalCorrectFields++;
+          if (hasBinyan && binyanCorrect) totalCorrectFields++;
+          if (zmanCorrect) totalCorrectFields++;
+          if (hasGuf && gufCorrect) totalCorrectFields++;
+          
+          // Store validation results for this answer
+          answerUpdates.push({
+            sentence_id: answer.sentence_id,
+            is_advanced: false,
+            shoresh_correct: shoreshCorrect,
+            binyan_correct: hasBinyan ? binyanCorrect : null,
+            zman_correct: zmanCorrect,
+            guf_correct: hasGuf ? gufCorrect : null
+          });
+        }
       }
 
       // Calculate final score out of 100 with standard rounding
@@ -245,17 +279,31 @@ export default function AssignmentReview() {
 
       // Update all answers with validation results
       for (const update of answerUpdates) {
-        await supabase
-          .from('student_answers')
-          .update({
-            shoresh_correct: update.shoresh_correct,
-            binyan_correct: update.binyan_correct,
-            zman_correct: update.zman_correct,
-            guf_correct: update.guf_correct,
-            updated_at: new Date().toISOString()
-          })
-          .eq('submission_id', submission.id)
-          .eq('sentence_id', update.sentence_id);
+        if ((update as any).is_advanced) {
+          // עדכון לשאלה מורכבת
+          await supabase
+            .from('student_answers')
+            .update({
+              is_correct: (update as any).is_correct,
+              partial_scores: (update as any).partial_scores,
+              updated_at: new Date().toISOString()
+            })
+            .eq('submission_id', submission.id)
+            .eq('sentence_id', update.sentence_id);
+        } else {
+          // עדכון לשאלה רגילה
+          await supabase
+            .from('student_answers')
+            .update({
+              shoresh_correct: (update as any).shoresh_correct,
+              binyan_correct: (update as any).binyan_correct,
+              zman_correct: (update as any).zman_correct,
+              guf_correct: (update as any).guf_correct,
+              updated_at: new Date().toISOString()
+            })
+            .eq('submission_id', submission.id)
+            .eq('sentence_id', update.sentence_id);
+        }
       }
 
       // Update submission status

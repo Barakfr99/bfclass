@@ -27,6 +27,11 @@ interface SentenceResult {
   zman_correct: boolean;
   guf_correct: boolean;
   points_earned: number;
+  question_data?: any;
+  answer_data?: any;
+  question_type?: string;
+  is_correct?: boolean;
+  partial_scores?: any;
 }
 
 export default function AssignmentResults() {
@@ -147,7 +152,12 @@ export default function AssignmentResults() {
             binyan_correct: answer?.binyan_correct || false,
             zman_correct: answer?.zman_correct || false,
             guf_correct: answer?.guf_correct || false,
-            points_earned: 0 // Not shown per sentence anymore
+            points_earned: 0, // Not shown per sentence anymore
+            question_data: sentence.question_data,
+            answer_data: answer?.answer_data,
+            question_type: answer?.question_type,
+            is_correct: answer?.is_correct,
+            partial_scores: answer?.partial_scores
           };
         })
       );
@@ -285,162 +295,195 @@ export default function AssignmentResults() {
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <h3 className="font-semibold text-lg mb-2">
-                      📝 משפט {result.sentence_number}:
+                      📝 {result.question_data ? 'שאלה' : 'משפט'} {result.sentence_number}:
                     </h3>
-                    <p className="text-foreground/80 mb-2">{result.full_sentence}</p>
-                    <p className="text-sm text-muted-foreground">
-                      מילה לניתוח: <span className="font-bold text-primary">{result.analyzed_word}</span>
-                    </p>
+                    {result.question_data ? (
+                      <div className="space-y-2">
+                        <p className="text-sm font-semibold text-primary">
+                          {result.question_data.instruction}
+                        </p>
+                        {result.is_correct !== undefined && (
+                          <Badge className={result.is_correct ? 'bg-success text-white' : 'bg-destructive text-white'}>
+                            {result.is_correct ? '✓ נכון' : '✗ שגוי'}
+                          </Badge>
+                        )}
+                        {result.partial_scores && (
+                          <div className="mt-2 space-y-1 text-sm">
+                            <p className="font-medium">ניקוד חלקי:</p>
+                            {Object.entries(result.partial_scores).map(([key, value]) => (
+                              <p key={key} className="text-muted-foreground">
+                                {key}: {value as any}/10
+                              </p>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-foreground/80 mb-2">{result.full_sentence}</p>
+                        <p className="text-sm text-muted-foreground">
+                          מילה לניתוח: <span className="font-bold text-primary">{result.analyzed_word}</span>
+                        </p>
+                      </>
+                    )}
                   </div>
                   <div className="flex gap-1">
-                    {result.shoresh_correct && <CheckCircle2 className="w-4 h-4 text-success" />}
-                    {result.correct_binyan && result.binyan_correct && <CheckCircle2 className="w-4 h-4 text-success" />}
-                    {result.zman_correct && <CheckCircle2 className="w-4 h-4 text-success" />}
-                    {result.correct_guf && result.guf_correct && <CheckCircle2 className="w-4 h-4 text-success" />}
+                    {result.question_data ? (
+                      result.is_correct && <CheckCircle2 className="w-5 h-5 text-success" />
+                    ) : (
+                      <>
+                        {result.shoresh_correct && <CheckCircle2 className="w-4 h-4 text-success" />}
+                        {result.correct_binyan && result.binyan_correct && <CheckCircle2 className="w-4 h-4 text-success" />}
+                        {result.zman_correct && <CheckCircle2 className="w-4 h-4 text-success" />}
+                        {result.correct_guf && result.guf_correct && <CheckCircle2 className="w-4 h-4 text-success" />}
+                      </>
+                    )}
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-4 border-t">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      {result.shoresh_correct ? (
-                        <CheckCircle2 className="w-4 h-4 text-success" />
-                      ) : (
-                        <XCircle className="w-4 h-4 text-destructive" />
-                      )}
-                      <span className="text-sm font-medium">שורש:</span>
-                    </div>
-                    <div className="text-sm pr-6 space-y-1">
-                      {result.shoresh_correct ? (
-                        <span className="text-success">✓ {result.student_shoresh}</span>
-                      ) : (
-                        <div className="space-y-1">
-                          <div>
-                            <span className="text-destructive">✗ תשובת התלמיד: {result.student_shoresh}</span>
-                            <br />
-                            <span className="text-muted-foreground">תשובה נכונה: {result.correct_shoresh}</span>
+                {!result.question_data && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-4 border-t">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        {result.shoresh_correct ? (
+                          <CheckCircle2 className="w-4 h-4 text-success" />
+                        ) : (
+                          <XCircle className="w-4 h-4 text-destructive" />
+                        )}
+                        <span className="text-sm font-medium">שורש:</span>
+                      </div>
+                      <div className="text-sm pr-6 space-y-1">
+                        {result.shoresh_correct ? (
+                          <span className="text-success">✓ {result.student_shoresh}</span>
+                        ) : (
+                          <div className="space-y-1">
+                            <div>
+                              <span className="text-destructive">✗ תשובת התלמיד: {result.student_shoresh}</span>
+                              <br />
+                              <span className="text-muted-foreground">תשובה נכונה: {result.correct_shoresh}</span>
+                            </div>
+                            {isTeacherView && (
+                              <Button
+                                size="sm"
+                                variant="default"
+                                className="mt-1 h-8 text-xs gap-1 bg-success hover:bg-success/90"
+                                onClick={() => approveAnswer(result.answer_id, 'shoresh')}
+                              >
+                                <Check className="w-3 h-3" />
+                                אשר תשובה זו
+                              </Button>
+                            )}
                           </div>
-                          {isTeacherView && (
-                            <Button
-                              size="sm"
-                              variant="default"
-                              className="mt-1 h-8 text-xs gap-1 bg-success hover:bg-success/90"
-                              onClick={() => approveAnswer(result.answer_id, 'shoresh')}
-                            >
-                              <Check className="w-3 h-3" />
-                              אשר תשובה זו
-                            </Button>
-                          )}
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      {result.binyan_correct ? (
-                        <CheckCircle2 className="w-4 h-4 text-success" />
-                      ) : (
-                        <XCircle className="w-4 h-4 text-destructive" />
-                      )}
-                      <span className="text-sm font-medium">בניין:</span>
-                    </div>
-                    <div className="text-sm pr-6 space-y-1">
-                      {result.binyan_correct ? (
-                        <span className="text-success">✓ {result.student_binyan}</span>
-                      ) : (
-                        <div className="space-y-1">
-                          <div>
-                            <span className="text-destructive">✗ תשובת התלמיד: {result.student_binyan}</span>
-                            <br />
-                            <span className="text-muted-foreground">תשובה נכונה: {result.correct_binyan}</span>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        {result.binyan_correct ? (
+                          <CheckCircle2 className="w-4 h-4 text-success" />
+                        ) : (
+                          <XCircle className="w-4 h-4 text-destructive" />
+                        )}
+                        <span className="text-sm font-medium">בניין:</span>
+                      </div>
+                      <div className="text-sm pr-6 space-y-1">
+                        {result.binyan_correct ? (
+                          <span className="text-success">✓ {result.student_binyan}</span>
+                        ) : (
+                          <div className="space-y-1">
+                            <div>
+                              <span className="text-destructive">✗ תשובת התלמיד: {result.student_binyan}</span>
+                              <br />
+                              <span className="text-muted-foreground">תשובה נכונה: {result.correct_binyan}</span>
+                            </div>
+                            {isTeacherView && (
+                              <Button
+                                size="sm"
+                                variant="default"
+                                className="mt-1 h-8 text-xs gap-1 bg-success hover:bg-success/90"
+                                onClick={() => approveAnswer(result.answer_id, 'binyan')}
+                              >
+                                <Check className="w-3 h-3" />
+                                אשר תשובה זו
+                              </Button>
+                            )}
                           </div>
-                          {isTeacherView && (
-                            <Button
-                              size="sm"
-                              variant="default"
-                              className="mt-1 h-8 text-xs gap-1 bg-success hover:bg-success/90"
-                              onClick={() => approveAnswer(result.answer_id, 'binyan')}
-                            >
-                              <Check className="w-3 h-3" />
-                              אשר תשובה זו
-                            </Button>
-                          )}
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      {result.zman_correct ? (
-                        <CheckCircle2 className="w-4 h-4 text-success" />
-                      ) : (
-                        <XCircle className="w-4 h-4 text-destructive" />
-                      )}
-                      <span className="text-sm font-medium">זמן:</span>
-                    </div>
-                    <div className="text-sm pr-6 space-y-1">
-                      {result.zman_correct ? (
-                        <span className="text-success">✓ {result.student_zman}</span>
-                      ) : (
-                        <div className="space-y-1">
-                          <div>
-                            <span className="text-destructive">✗ תשובת התלמיד: {result.student_zman}</span>
-                            <br />
-                            <span className="text-muted-foreground">תשובה נכונה: {result.correct_zman}</span>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        {result.zman_correct ? (
+                          <CheckCircle2 className="w-4 h-4 text-success" />
+                        ) : (
+                          <XCircle className="w-4 h-4 text-destructive" />
+                        )}
+                        <span className="text-sm font-medium">זמן:</span>
+                      </div>
+                      <div className="text-sm pr-6 space-y-1">
+                        {result.zman_correct ? (
+                          <span className="text-success">✓ {result.student_zman}</span>
+                        ) : (
+                          <div className="space-y-1">
+                            <div>
+                              <span className="text-destructive">✗ תשובת התלמיד: {result.student_zman}</span>
+                              <br />
+                              <span className="text-muted-foreground">תשובה נכונה: {result.correct_zman}</span>
+                            </div>
+                            {isTeacherView && (
+                              <Button
+                                size="sm"
+                                variant="default"
+                                className="mt-1 h-8 text-xs gap-1 bg-success hover:bg-success/90"
+                                onClick={() => approveAnswer(result.answer_id, 'zman')}
+                              >
+                                <Check className="w-3 h-3" />
+                                אשר תשובה זו
+                              </Button>
+                            )}
                           </div>
-                          {isTeacherView && (
-                            <Button
-                              size="sm"
-                              variant="default"
-                              className="mt-1 h-8 text-xs gap-1 bg-success hover:bg-success/90"
-                              onClick={() => approveAnswer(result.answer_id, 'zman')}
-                            >
-                              <Check className="w-3 h-3" />
-                              אשר תשובה זו
-                            </Button>
-                          )}
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      {result.guf_correct ? (
-                        <CheckCircle2 className="w-4 h-4 text-success" />
-                      ) : (
-                        <XCircle className="w-4 h-4 text-destructive" />
-                      )}
-                      <span className="text-sm font-medium">גוף:</span>
-                    </div>
-                    <div className="text-sm pr-6 space-y-1">
-                      {result.guf_correct ? (
-                        <span className="text-success">✓ {result.student_guf}</span>
-                      ) : (
-                        <div className="space-y-1">
-                          <div>
-                            <span className="text-destructive">✗ תשובת התלמיד: {result.student_guf}</span>
-                            <br />
-                            <span className="text-muted-foreground">תשובה נכונה: {result.correct_guf}</span>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        {result.guf_correct ? (
+                          <CheckCircle2 className="w-4 h-4 text-success" />
+                        ) : (
+                          <XCircle className="w-4 h-4 text-destructive" />
+                        )}
+                        <span className="text-sm font-medium">גוף:</span>
+                      </div>
+                      <div className="text-sm pr-6 space-y-1">
+                        {result.guf_correct ? (
+                          <span className="text-success">✓ {result.student_guf}</span>
+                        ) : (
+                          <div className="space-y-1">
+                            <div>
+                              <span className="text-destructive">✗ תשובת התלמיד: {result.student_guf}</span>
+                              <br />
+                              <span className="text-muted-foreground">תשובה נכונה: {result.correct_guf}</span>
+                            </div>
+                            {isTeacherView && (
+                              <Button
+                                size="sm"
+                                variant="default"
+                                className="mt-1 h-8 text-xs gap-1 bg-success hover:bg-success/90"
+                                onClick={() => approveAnswer(result.answer_id, 'guf')}
+                              >
+                                <Check className="w-3 h-3" />
+                                אשר תשובה זו
+                              </Button>
+                            )}
                           </div>
-                          {isTeacherView && (
-                            <Button
-                              size="sm"
-                              variant="default"
-                              className="mt-1 h-8 text-xs gap-1 bg-success hover:bg-success/90"
-                              onClick={() => approveAnswer(result.answer_id, 'guf')}
-                            >
-                              <Check className="w-3 h-3" />
-                              אשר תשובה זו
-                            </Button>
-                          )}
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
                 <div className="pt-2 border-t">
                   <p className={`text-sm font-semibold ${result.points_earned === 10 ? 'text-success' : ''}`}>

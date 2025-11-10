@@ -10,6 +10,8 @@ import { useStudent } from '@/contexts/StudentContext';
 import { supabase } from '@/integrations/supabase/client';
 import { ArrowRight, ArrowLeft, Info } from 'lucide-react';
 import { toast } from 'sonner';
+import { GRAMMAR_CONFIG, getBinyanOptions, getZmanOptions, getGufOptions } from '@/config/grammarConfig';
+import AdvancedQuestion from '@/components/AdvancedQuestion';
 
 interface Sentence {
   id: string;
@@ -20,6 +22,7 @@ interface Sentence {
   correct_guf: string | null;
   correct_binyan: string | null;
   is_practice: boolean;
+  question_data?: any;
 }
 
 interface Assignment {
@@ -206,151 +209,146 @@ export default function AssignmentSentence() {
           <CardContent className="space-y-6">
             {renderSentenceWithHighlight()}
             
-            <div className="border-t pt-6">
-              <h3 className="text-lg font-semibold mb-4">
-                נתח את המילה: {sentence?.analyzed_word}
-              </h3>
-              
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Label>שורש:</Label>
-                    <Popover>
-                      <PopoverTrigger>
-                        <Info className="w-4 h-4 text-muted-foreground hover:text-primary cursor-help" />
-                      </PopoverTrigger>
-                      <PopoverContent className="w-80">
-                        <div className="space-y-2">
-                          <h4 className="font-semibold">📌 דוגמאות לכתיבת שורש:</h4>
-                          <ul className="text-sm space-y-1">
-                            <li>• כתב</li>
-                            <li>• כ-ת-ב</li>
-                            <li>• כ.ת.ב</li>
-                            <li>• כת"ב</li>
-                          </ul>
-                          <p className="text-sm text-muted-foreground">
-                            💡 ניתן להשתמש באות רגילה או סופית
-                          </p>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  <Input
-                    value={answer.student_shoresh}
-                    onChange={(e) => setAnswer({ ...answer, student_shoresh: e.target.value })}
-                    placeholder="הקלד את התשובה..."
-                    maxLength={15}
-                  />
-                </div>
-
-                {sentence?.correct_binyan !== null && (
+            {sentence?.question_data ? (
+              // שאלה מורכבת - תצוגת רכיב מתקדם
+              <AdvancedQuestion
+                questionData={sentence.question_data}
+                submissionId={submissionId || ''}
+                sentenceId={sentence.id}
+                onComplete={handleNext}
+              />
+            ) : (
+              // שאלה רגילה - הטופס המקורי
+              <div className="border-t pt-6">
+                <h3 className="text-lg font-semibold mb-4">
+                  נתח את המילה: {sentence?.analyzed_word}
+                </h3>
+                
+                <div className="space-y-4">
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <Label>בניין:</Label>
+                      <Label>שורש:</Label>
                       <Popover>
                         <PopoverTrigger>
                           <Info className="w-4 h-4 text-muted-foreground hover:text-primary cursor-help" />
                         </PopoverTrigger>
                         <PopoverContent className="w-80">
                           <div className="space-y-2">
-                            <h4 className="font-semibold">📌 7 בניינים:</h4>
+                            <h4 className="font-semibold">📌 {GRAMMAR_CONFIG.shoresh.displayName} - דוגמאות:</h4>
                             <ul className="text-sm space-y-1">
-                              <li>• פעל / קל</li>
-                              <li>• נפעל</li>
-                              <li>• פיעל</li>
-                              <li>• פועל</li>
-                              <li>• הפעיל</li>
-                              <li>• הופעל</li>
-                              <li>• התפעל</li>
+                              {GRAMMAR_CONFIG.shoresh.examples.map(example => (
+                                <li key={example}>• {example}</li>
+                              ))}
+                            </ul>
+                            <p className="text-sm text-muted-foreground">
+                              💡 {GRAMMAR_CONFIG.shoresh.helpText}
+                            </p>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <Input
+                      value={answer.student_shoresh}
+                      onChange={(e) => setAnswer({ ...answer, student_shoresh: e.target.value })}
+                      placeholder="הקלד את התשובה..."
+                      maxLength={GRAMMAR_CONFIG.shoresh.maxLength}
+                    />
+                  </div>
+
+                  {sentence?.correct_binyan !== null && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Label>בניין:</Label>
+                        <Popover>
+                          <PopoverTrigger>
+                            <Info className="w-4 h-4 text-muted-foreground hover:text-primary cursor-help" />
+                          </PopoverTrigger>
+                          <PopoverContent className="w-80">
+                            <div className="space-y-2">
+                              <h4 className="font-semibold">📌 {GRAMMAR_CONFIG.binyan.displayName}:</h4>
+                              <ul className="text-sm space-y-1">
+                                {getBinyanOptions().map(option => (
+                                  <li key={option.value}>• {option.label}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                      <Input
+                        value={answer.student_binyan}
+                        onChange={(e) => setAnswer({ ...answer, student_binyan: e.target.value })}
+                        placeholder="הקלד את התשובה..."
+                        maxLength={GRAMMAR_CONFIG.binyan.maxLength}
+                      />
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Label>זמן:</Label>
+                      <Popover>
+                        <PopoverTrigger>
+                          <Info className="w-4 h-4 text-muted-foreground hover:text-primary cursor-help" />
+                        </PopoverTrigger>
+                        <PopoverContent className="w-80">
+                          <div className="space-y-2">
+                            <h4 className="font-semibold">📌 {GRAMMAR_CONFIG.zman.displayName}:</h4>
+                            <ul className="text-sm space-y-1">
+                              {getZmanOptions().map(option => (
+                                <li key={option.value}>• {option.label}</li>
+                              ))}
                             </ul>
                           </div>
                         </PopoverContent>
                       </Popover>
                     </div>
                     <Input
-                      value={answer.student_binyan}
-                      onChange={(e) => setAnswer({ ...answer, student_binyan: e.target.value })}
+                      value={answer.student_zman}
+                      onChange={(e) => setAnswer({ ...answer, student_zman: e.target.value })}
                       placeholder="הקלד את התשובה..."
-                      maxLength={15}
+                      maxLength={GRAMMAR_CONFIG.zman.maxLength}
                     />
                   </div>
-                )}
 
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Label>זמן:</Label>
-                    <Popover>
-                      <PopoverTrigger>
-                        <Info className="w-4 h-4 text-muted-foreground hover:text-primary cursor-help" />
-                      </PopoverTrigger>
-                      <PopoverContent className="w-80">
-                        <div className="space-y-2">
-                          <h4 className="font-semibold">📌 זמנים אפשריים:</h4>
-                          <ul className="text-sm space-y-1">
-                            <li>• עבר</li>
-                            <li>• הווה / בינוני</li>
-                            <li>• עתיד</li>
-                            <li>• ציווי</li>
-                            <li>• שם פועל</li>
-                          </ul>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  <Input
-                    value={answer.student_zman}
-                    onChange={(e) => setAnswer({ ...answer, student_zman: e.target.value })}
-                    placeholder="הקלד את התשובה..."
-                    maxLength={15}
-                  />
-                </div>
-
-                {sentence?.correct_guf && (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Label>גוף:</Label>
-                      <Popover>
-                        <PopoverTrigger>
-                          <Info className="w-4 h-4 text-muted-foreground hover:text-primary cursor-help" />
-                        </PopoverTrigger>
-                        <PopoverContent className="w-80">
-                          <div className="space-y-3">
-                            <h4 className="font-semibold">📌 גופים דקדוקיים:</h4>
-                            <div className="text-sm space-y-2">
-                              <div>
-                                <p className="font-medium">גוף ראשון (מדבר):</p>
-                                <p className="text-muted-foreground">אני → מדבר / מדברת</p>
-                                <p className="text-muted-foreground">אנחנו → מדברים / מדברות</p>
-                              </div>
-                              <div>
-                                <p className="font-medium">גוף שני (נוכח):</p>
-                                <p className="text-muted-foreground">אתה → נוכח</p>
-                                <p className="text-muted-foreground">את → נוכחת</p>
-                                <p className="text-muted-foreground">אתם → נוכחים</p>
-                                <p className="text-muted-foreground">אתן → נוכחות</p>
-                              </div>
-                              <div>
-                                <p className="font-medium">גוף שלישי (נסתר):</p>
-                                <p className="text-muted-foreground">הוא → נסתר</p>
-                                <p className="text-muted-foreground">היא → נסתרת</p>
-                                <p className="text-muted-foreground">הם → נסתרים</p>
-                                <p className="text-muted-foreground">הן → נסתרות</p>
+                  {sentence?.correct_guf && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Label>גוף:</Label>
+                        <Popover>
+                          <PopoverTrigger>
+                            <Info className="w-4 h-4 text-muted-foreground hover:text-primary cursor-help" />
+                          </PopoverTrigger>
+                          <PopoverContent className="w-80">
+                            <div className="space-y-3">
+                              <h4 className="font-semibold">📌 {GRAMMAR_CONFIG.guf.displayName}:</h4>
+                              <div className="text-sm space-y-2">
+                                {GRAMMAR_CONFIG.guf.groups.map((group) => (
+                                  <div key={group.name}>
+                                    <p className="font-medium">{group.name}:</p>
+                                    {group.options.map((option) => (
+                                      <p key={option.value} className="text-muted-foreground">
+                                        {option.pronoun} → {option.value}
+                                      </p>
+                                    ))}
+                                  </div>
+                                ))}
                               </div>
                             </div>
-                          </div>
-                        </PopoverContent>
-                      </Popover>
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                      <Input
+                        value={answer.student_guf}
+                        onChange={(e) => setAnswer({ ...answer, student_guf: e.target.value })}
+                        placeholder="הקלד את התשובה..."
+                        maxLength={GRAMMAR_CONFIG.guf.maxLength}
+                      />
                     </div>
-                    <Input
-                      value={answer.student_guf}
-                      onChange={(e) => setAnswer({ ...answer, student_guf: e.target.value })}
-                      placeholder="הקלד את התשובה..."
-                      maxLength={15}
-                    />
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="flex justify-between pt-6 border-t">
               <Button

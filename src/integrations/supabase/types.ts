@@ -113,6 +113,7 @@ export type Database = {
           created_at: string | null
           guf_correct: boolean | null
           id: string
+          is_correct: boolean | null
           partial_scores: Json | null
           points_earned: number | null
           question_type: string | null
@@ -132,6 +133,7 @@ export type Database = {
           created_at?: string | null
           guf_correct?: boolean | null
           id?: string
+          is_correct?: boolean | null
           partial_scores?: Json | null
           points_earned?: number | null
           question_type?: string | null
@@ -151,6 +153,7 @@ export type Database = {
           created_at?: string | null
           guf_correct?: boolean | null
           id?: string
+          is_correct?: boolean | null
           partial_scores?: Json | null
           points_earned?: number | null
           question_type?: string | null
