@@ -326,9 +326,9 @@ export default function AssignmentSentence() {
                                 {GRAMMAR_CONFIG.guf.groups.map((group) => (
                                   <div key={group.name}>
                                     <p className="font-medium">{group.name}:</p>
-                                    {group.options.map((option) => (
+                                {group.options.map((option) => (
                                       <p key={option.value} className="text-muted-foreground">
-                                        {option.pronoun} → {option.value}
+                                        {option.value} ← {option.pronoun}
                                       </p>
                                     ))}
                                   </div>

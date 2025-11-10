@@ -36,6 +36,27 @@ export default function StudentDashboard() {
       return;
     }
     loadData();
+
+    // הוספת realtime updates לטבלת submissions
+    const channel = supabase
+      .channel('submissions-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'submissions',
+          filter: `student_id=eq.${student?.studentId}`
+        },
+        () => {
+          loadData(); // רענון הנתונים כשיש שינוי
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [student, navigate]);
 
   const loadData = async () => {

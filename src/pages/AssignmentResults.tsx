@@ -378,40 +378,42 @@ export default function AssignmentResults() {
                       </div>
                     </div>
 
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        {result.binyan_correct ? (
-                          <CheckCircle2 className="w-4 h-4 text-success" />
-                        ) : (
-                          <XCircle className="w-4 h-4 text-destructive" />
-                        )}
-                        <span className="text-sm font-medium">בניין:</span>
-                      </div>
-                      <div className="text-sm pr-6 space-y-1">
-                        {result.binyan_correct ? (
-                          <span className="text-success">✓ {result.student_binyan}</span>
-                        ) : (
-                          <div className="space-y-1">
-                            <div>
-                              <span className="text-destructive">✗ תשובת התלמיד: {result.student_binyan}</span>
-                              <br />
-                              <span className="text-muted-foreground">תשובה נכונה: {result.correct_binyan}</span>
+                    {result.correct_binyan !== null && (
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          {result.binyan_correct ? (
+                            <CheckCircle2 className="w-4 h-4 text-success" />
+                          ) : (
+                            <XCircle className="w-4 h-4 text-destructive" />
+                          )}
+                          <span className="text-sm font-medium">בניין:</span>
+                        </div>
+                        <div className="text-sm pr-6 space-y-1">
+                          {result.binyan_correct ? (
+                            <span className="text-success">✓ {result.student_binyan}</span>
+                          ) : (
+                            <div className="space-y-1">
+                              <div>
+                                <span className="text-destructive">✗ תשובת התלמיד: {result.student_binyan}</span>
+                                <br />
+                                <span className="text-muted-foreground">תשובה נכונה: {result.correct_binyan}</span>
+                              </div>
+                              {isTeacherView && (
+                                <Button
+                                  size="sm"
+                                  variant="default"
+                                  className="mt-1 h-8 text-xs gap-1 bg-success hover:bg-success/90"
+                                  onClick={() => approveAnswer(result.answer_id, 'binyan')}
+                                >
+                                  <Check className="w-3 h-3" />
+                                  אשר תשובה זו
+                                </Button>
+                              )}
                             </div>
-                            {isTeacherView && (
-                              <Button
-                                size="sm"
-                                variant="default"
-                                className="mt-1 h-8 text-xs gap-1 bg-success hover:bg-success/90"
-                                onClick={() => approveAnswer(result.answer_id, 'binyan')}
-                              >
-                                <Check className="w-3 h-3" />
-                                אשר תשובה זו
-                              </Button>
-                            )}
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
@@ -448,16 +450,17 @@ export default function AssignmentResults() {
                       </div>
                     </div>
 
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        {result.guf_correct ? (
-                          <CheckCircle2 className="w-4 h-4 text-success" />
-                        ) : (
-                          <XCircle className="w-4 h-4 text-destructive" />
-                        )}
-                        <span className="text-sm font-medium">גוף:</span>
-                      </div>
-                      <div className="text-sm pr-6 space-y-1">
+                    {result.correct_guf !== null && (
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          {result.guf_correct ? (
+                            <CheckCircle2 className="w-4 h-4 text-success" />
+                          ) : (
+                            <XCircle className="w-4 h-4 text-destructive" />
+                          )}
+                          <span className="text-sm font-medium">גוף:</span>
+                        </div>
+                        <div className="text-sm pr-6 space-y-1">
                         {result.guf_correct ? (
                           <span className="text-success">✓ {result.student_guf}</span>
                         ) : (
@@ -482,6 +485,7 @@ export default function AssignmentResults() {
                         )}
                       </div>
                     </div>
+                    )}
                   </div>
                 )}
 
