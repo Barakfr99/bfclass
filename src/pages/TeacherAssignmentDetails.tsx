@@ -130,15 +130,37 @@ export default function TeacherAssignmentDetails() {
           if (submission && submission.status === 'in_progress') {
             const { data: answers } = await supabase
               .from('student_answers')
-              .select('*')
+              .select('sentence_id, answer_data, student_shoresh, student_binyan, student_zman, student_guf')
               .eq('submission_id', submission.id);
             
-            completedSentences = answers?.filter(a => 
-              a.student_shoresh && 
-              a.student_binyan && 
-              a.student_zman && 
-              a.student_guf
-            ).length || 0;
+            // Get all sentence info to check which fields are required
+            const { data: sentenceInfo } = await supabase
+              .from('assignment_sentences')
+              .select('id, correct_binyan, correct_guf, question_data')
+              .eq('assignment_id', assignmentId);
+            
+            const sentenceMap = new Map(sentenceInfo?.map(s => [s.id, s]) || []);
+            
+            completedSentences = answers?.filter(a => {
+              const sentence = sentenceMap.get(a.sentence_id);
+              if (!sentence) return false;
+              
+              // For complex questions with question_data
+              if (sentence.question_data) {
+                return a.answer_data !== null && a.answer_data !== undefined;
+              }
+              
+              // For regular grammar analysis questions
+              const hasBinyan = sentence.correct_binyan !== null;
+              const hasGuf = sentence.correct_guf !== null;
+              
+              const shoreshFilled = a.student_shoresh && a.student_shoresh.trim() !== '';
+              const binyanFilled = !hasBinyan || (a.student_binyan && a.student_binyan.trim() !== '');
+              const zmanFilled = a.student_zman && a.student_zman.trim() !== '';
+              const gufFilled = !hasGuf || (a.student_guf && a.student_guf.trim() !== '');
+              
+              return shoreshFilled && binyanFilled && zmanFilled && gufFilled;
+            }).length || 0;
           }
           
           return {

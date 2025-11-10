@@ -134,6 +134,9 @@ export default function StudentDashboard() {
     );
   }
 
+  // Check if there are assignments returned for revision
+  const hasReturnedAssignments = submissions.some(s => s.status === 'returned_for_revision');
+
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
@@ -147,6 +150,40 @@ export default function StudentDashboard() {
             התנתק
           </Button>
         </div>
+
+        {/* Alert for returned assignments */}
+        {hasReturnedAssignments && (
+          <Card className="mb-6 border-destructive bg-destructive/5">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-3">
+                <div className="bg-destructive text-destructive-foreground rounded-full p-2">
+                  <AlertCircle className="w-5 h-5" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-lg mb-1 text-destructive">🔴 יש משימות שהוחזרו לתיקון</h3>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    המורה ביקש ממך לתקן ולשלוח שוב. עיין בהערות המורה למטה ותקן את המשימות.
+                  </p>
+                  <Button 
+                    size="sm" 
+                    variant="destructive"
+                    onClick={() => {
+                      const firstReturnedAssignment = assignments.find(a => {
+                        const sub = getSubmissionStatus(a.id);
+                        return sub?.status === 'returned_for_revision';
+                      });
+                      if (firstReturnedAssignment) {
+                        handleAssignmentClick(firstReturnedAssignment.id);
+                      }
+                    }}
+                  >
+                    עבור לתיקון עכשיו →
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="space-y-4">
           <h2 className="text-2xl font-bold flex items-center gap-2">

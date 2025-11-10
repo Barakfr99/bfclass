@@ -216,8 +216,8 @@ export default function AssignmentResults() {
           .eq('id', answer.sentence_id)
           .single();
 
-        const hasBinyan = sentence?.correct_binyan !== null;
-        const hasGuf = sentence?.correct_guf !== null;
+        const hasBinyan = sentence?.correct_binyan !== null && sentence?.correct_binyan !== '';
+        const hasGuf = sentence?.correct_guf !== null && sentence?.correct_guf !== '';
 
         // Count fields
         totalFields += 2 + (hasBinyan ? 1 : 0) + (hasGuf ? 1 : 0);
@@ -333,9 +333,9 @@ export default function AssignmentResults() {
                     ) : (
                       <>
                         {result.shoresh_correct && <CheckCircle2 className="w-4 h-4 text-success" />}
-                        {result.correct_binyan && result.binyan_correct && <CheckCircle2 className="w-4 h-4 text-success" />}
+                        {result.correct_binyan !== null && result.correct_binyan !== '' && result.binyan_correct && <CheckCircle2 className="w-4 h-4 text-success" />}
                         {result.zman_correct && <CheckCircle2 className="w-4 h-4 text-success" />}
-                        {result.correct_guf && result.guf_correct && <CheckCircle2 className="w-4 h-4 text-success" />}
+                        {result.correct_guf !== null && result.correct_guf !== '' && result.guf_correct && <CheckCircle2 className="w-4 h-4 text-success" />}
                       </>
                     )}
                   </div>
@@ -378,7 +378,7 @@ export default function AssignmentResults() {
                       </div>
                     </div>
 
-                    {result.correct_binyan !== null && (
+                    {result.correct_binyan !== null && result.correct_binyan !== '' && (
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           {result.binyan_correct ? (
@@ -450,7 +450,7 @@ export default function AssignmentResults() {
                       </div>
                     </div>
 
-                    {result.correct_guf !== null && (
+                    {result.correct_guf !== null && result.correct_guf !== '' && (
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           {result.guf_correct ? (
