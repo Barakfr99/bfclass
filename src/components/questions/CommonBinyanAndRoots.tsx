@@ -119,7 +119,11 @@ export default function CommonBinyanAndRoots({
       {questionData.sub_questions?.part_a && (
         <Card>
           <CardContent className="p-4">
-            <Label className="text-base font-semibold">{questionData.sub_questions.part_a}</Label>
+            <Label className="text-base font-semibold">
+              {typeof questionData.sub_questions.part_a === 'string' 
+                ? questionData.sub_questions.part_a 
+                : questionData.sub_questions.part_a.text}
+            </Label>
             <Input
               value={commonBinyan}
               onChange={(e) => setCommonBinyan(e.target.value)}
@@ -133,7 +137,11 @@ export default function CommonBinyanAndRoots({
       {questionData.sub_questions?.part_b && (
         <Card>
           <CardContent className="p-4 space-y-4">
-            <Label className="text-base font-semibold">{questionData.sub_questions.part_b}</Label>
+            <Label className="text-base font-semibold">
+              {typeof questionData.sub_questions.part_b === 'string' 
+                ? questionData.sub_questions.part_b 
+                : questionData.sub_questions.part_b.text}
+            </Label>
             
             {questionData.sentences.map((sentence: any, index: number) => (
               <div key={sentence.sentence_number}>

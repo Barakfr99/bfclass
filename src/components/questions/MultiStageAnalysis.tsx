@@ -144,7 +144,9 @@ export default function MultiStageAnalysis({
 
         <TabsContent value="part_a" className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            {questionData.sub_questions?.part_a || 'בחרו 3 פעלים מהמשפטים הבאים'}
+            {typeof questionData.sub_questions?.part_a === 'string' 
+              ? questionData.sub_questions.part_a 
+              : (questionData.sub_questions?.part_a?.text || 'בחרו 3 פעלים מהמשפטים הבאים')}
             <span className="font-semibold mr-2">({selectedVerbs.length}/3)</span>
           </p>
           
@@ -173,7 +175,9 @@ export default function MultiStageAnalysis({
 
         <TabsContent value="part_b" className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            {questionData.sub_questions?.part_b || 'בחרו 2 שמות פועל מהמשפטים הבאים'}
+            {typeof questionData.sub_questions?.part_b === 'string' 
+              ? questionData.sub_questions.part_b 
+              : (questionData.sub_questions?.part_b?.text || 'בחרו 2 שמות פועל מהמשפטים הבאים')}
             <span className="font-semibold mr-2">({selectedInfinitives.length}/2)</span>
           </p>
           
@@ -202,7 +206,9 @@ export default function MultiStageAnalysis({
 
         <TabsContent value="part_c" className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            {questionData.sub_questions?.part_c || 'נתחו את הפעלים הנותרים'}
+            {typeof questionData.sub_questions?.part_c === 'string' 
+              ? questionData.sub_questions.part_c 
+              : (questionData.sub_questions?.part_c?.text || 'נתחו את הפעלים הנותרים')}
           </p>
           
           <div className="space-y-4">
