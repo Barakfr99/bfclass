@@ -228,7 +228,173 @@ GRAMMAR_CONFIG = {
 
 ---
 
-## 5. טכנולוגיות
+## 5. מבנה העץ של הפרויקט
+
+```
+hebrew-grammar-system/
+├── public/
+│   ├── favicon.ico
+│   ├── placeholder.svg
+│   └── robots.txt
+│
+├── src/
+│   ├── components/              # קומפוננטות React
+│   │   ├── ui/                 # קומפוננטות UI מ-shadcn/ui
+│   │   │   ├── accordion.tsx
+│   │   │   ├── alert-dialog.tsx
+│   │   │   ├── alert.tsx
+│   │   │   ├── aspect-ratio.tsx
+│   │   │   ├── avatar.tsx
+│   │   │   ├── badge.tsx
+│   │   │   ├── breadcrumb.tsx
+│   │   │   ├── button.tsx
+│   │   │   ├── calendar.tsx
+│   │   │   ├── card.tsx
+│   │   │   ├── carousel.tsx
+│   │   │   ├── chart.tsx
+│   │   │   ├── checkbox.tsx
+│   │   │   ├── collapsible.tsx
+│   │   │   ├── command.tsx
+│   │   │   ├── context-menu.tsx
+│   │   │   ├── dialog.tsx
+│   │   │   ├── drawer.tsx
+│   │   │   ├── dropdown-menu.tsx
+│   │   │   ├── form.tsx
+│   │   │   ├── hover-card.tsx
+│   │   │   ├── input-otp.tsx
+│   │   │   ├── input.tsx
+│   │   │   ├── label.tsx
+│   │   │   ├── menubar.tsx
+│   │   │   ├── navigation-menu.tsx
+│   │   │   ├── pagination.tsx
+│   │   │   ├── popover.tsx
+│   │   │   ├── progress.tsx
+│   │   │   ├── radio-group.tsx
+│   │   │   ├── resizable.tsx
+│   │   │   ├── scroll-area.tsx
+│   │   │   ├── select.tsx
+│   │   │   ├── separator.tsx
+│   │   │   ├── sheet.tsx
+│   │   │   ├── sidebar.tsx
+│   │   │   ├── skeleton.tsx
+│   │   │   ├── slider.tsx
+│   │   │   ├── sonner.tsx
+│   │   │   ├── switch.tsx
+│   │   │   ├── table.tsx
+│   │   │   ├── tabs.tsx
+│   │   │   ├── textarea.tsx
+│   │   │   ├── toast.tsx
+│   │   │   ├── toaster.tsx
+│   │   │   ├── toggle-group.tsx
+│   │   │   ├── toggle.tsx
+│   │   │   ├── tooltip.tsx
+│   │   │   ├── use-toast.ts
+│   │   │
+│   │   ├── questions/          # קומפוננטות לשאלות מורכבות
+│   │   │   ├── CompareGrammaticalComponents.tsx  # השוואת מרכיבים דקדוקיים
+│   │   │   ├── CompareVerbPairs.tsx             # השוואת זוגות פעלים
+│   │   │   ├── CommonBinyanAndRoots.tsx         # בניין משותף ושורשים
+│   │   │   └── MultiStageAnalysis.tsx           # ניתוח רב-שלבי
+│   │   │
+│   │   ├── AdvancedQuestion.tsx              # קומפוננטה כללית לשאלות מורכבות
+│   │   ├── AssignmentPreviewDialog.tsx       # דיאלוג תצוגה מקדימה של תרגיל
+│   │   ├── NavLink.tsx                       # קישור ניווט מותאם
+│   │   ├── ResetAssignmentDialog.tsx         # דיאלוג איפוס תרגיל
+│   │   ├── ReturnForRevisionDialog.tsx       # דיאלוג החזרה לתיקון
+│   │   ├── StudentNotesDialog.tsx            # דיאלוג הערות על תלמיד
+│   │   └── StudentProgressDialog.tsx         # דיאלוג התקדמות תלמיד
+│   │
+│   ├── config/
+│   │   └── grammarConfig.ts    # תצורת כללי דקדוק עברי
+│   │
+│   ├── contexts/
+│   │   └── StudentContext.tsx  # Context לניהול מצב התלמיד/מורה
+│   │
+│   ├── hooks/
+│   │   ├── use-mobile.tsx      # Hook לזיהוי מובייל
+│   │   └── use-toast.ts        # Hook להודעות Toast
+│   │
+│   ├── integrations/
+│   │   └── supabase/
+│   │       ├── client.ts       # קליינט Supabase (נוצר אוטומטית)
+│   │       └── types.ts        # טיפוסי TypeScript (נוצר אוטומטית)
+│   │
+│   ├── lib/
+│   │   └── utils.ts            # פונקציות עזר כלליות
+│   │
+│   ├── pages/                   # עמודים ראשיים
+│   │   ├── AssignmentInstructions.tsx    # הוראות תרגיל לתלמיד
+│   │   ├── AssignmentResults.tsx         # תוצאות תרגיל
+│   │   ├── AssignmentReview.tsx          # בדיקת הגשה (מורה)
+│   │   ├── AssignmentSentence.tsx        # פתרון משפט בודד
+│   │   ├── Login.tsx                     # עמוד התחברות
+│   │   ├── NotFound.tsx                  # עמוד 404
+│   │   ├── StudentDashboard.tsx          # דשבורד תלמיד
+│   │   ├── TeacherAssignmentDetails.tsx  # פרטי תרגיל (מורה)
+│   │   └── TeacherDashboard.tsx          # דשבורד מורה
+│   │
+│   ├── utils/
+│   │   └── validation.ts       # פונקציות וולידציה לתשובות
+│   │
+│   ├── App.css                 # סגנונות כלליים
+│   ├── App.tsx                 # קומפוננטת App ראשית עם Routing
+│   ├── index.css               # סגנונות גלובליים ו-Design System
+│   ├── main.tsx                # נקודת כניסה ראשית
+│   └── vite-env.d.ts          # הגדרות TypeScript ל-Vite
+│
+├── supabase/
+│   ├── config.toml            # תצורת Supabase (נוצר אוטומטית)
+│   └── migrations/            # קבצי Migration למסד הנתונים
+│
+├── .env                       # משתני סביבה (נוצר אוטומטית)
+├── .gitignore
+├── components.json            # תצורת shadcn/ui
+├── eslint.config.js          # תצורת ESLint
+├── index.html                # קובץ HTML ראשי
+├── package.json              # תלויות NPM
+├── package-lock.json
+├── postcss.config.js         # תצורת PostCSS
+├── PROJECT_OVERVIEW.md       # המסמך הזה
+├── README.md                 # הוראות פרויקט בסיסיות
+├── tailwind.config.ts        # תצורת Tailwind CSS
+├── tsconfig.json             # תצורת TypeScript
+├── tsconfig.app.json
+├── tsconfig.node.json
+└── vite.config.ts            # תצורת Vite
+```
+
+### הסבר תיקיות מרכזיות:
+
+#### `/src/components/`
+- **ui/**: קומפוננטות UI בסיסיות מספריית shadcn/ui - כפתורים, כרטיסים, דיאלוגים וכו'
+- **questions/**: קומפוננטות ייעודיות לסוגי שאלות מורכבות (Exercise 6+)
+- קומפוננטות כלליות: דיאלוגים לניהול, תצוגה מקדימה, והערות
+
+#### `/src/pages/`
+כל העמודים הראשיים של האפליקציה מחולקים לפי תפקיד:
+- עמודי תלמיד: Login, StudentDashboard, AssignmentInstructions, AssignmentSentence, AssignmentResults
+- עמודי מורה: TeacherDashboard, TeacherAssignmentDetails, AssignmentReview
+
+#### `/src/config/`
+קובץ `grammarConfig.ts` - מקור האמת היחיד לכל כללי הדקדוק העברי במערכת
+
+#### `/src/contexts/`
+Context API של React לניהול מצב גלובלי (מידע על המשתמש המחובר)
+
+#### `/src/utils/`
+פונקציות עזר לוולידציה של תשובות עם תמיכה בוריאנטים דקדוקיים
+
+#### `/src/integrations/supabase/`
+קבצים שנוצרים אוטומטית על ידי Supabase:
+- `client.ts` - חיבור למסד הנתונים
+- `types.ts` - טיפוסי TypeScript מהסכימה
+
+#### `/supabase/migrations/`
+קבצי SQL למיגרציות מסד הנתונים (יצירת טבלאות, עדכונים, RLS policies)
+
+---
+
+## 6. טכנולוגיות
 
 - **Frontend**: React 18 + TypeScript
 - **Build Tool**: Vite
@@ -242,7 +408,7 @@ GRAMMAR_CONFIG = {
 
 ---
 
-## 6. בעיות שנפתרו לאחרונה
+## 7. בעיות שנפתרו לאחרונה
 
 ### שלב 1 - תיקון באגים קריטיים:
 
@@ -281,7 +447,7 @@ GRAMMAR_CONFIG = {
 
 ---
 
-## 7. נקודות לשיפור והמשך פיתוח
+## 8. נקודות לשיפור והמשך פיתוח
 
 ### אבטחה:
 - יצירת מדיניות RLS נכונה שתלמידים יוכלו לראות רק את ההגשות שלהם
@@ -304,7 +470,7 @@ GRAMMAR_CONFIG = {
 
 ---
 
-## 8. הערות חשובות למפתחים
+## 9. הערות חשובות למפתחים
 
 ### עבודה עם שאלות מורכבות:
 - לכל סוג שאלה מורכבת יש קומפוננטה ייעודית ב-`src/components/questions/`
@@ -336,7 +502,7 @@ GRAMMAR_CONFIG = {
 ```
 לפניך תיעוד מפורט של מערכת תרגילי דקדוק עברי:
 
-[הדבק כאן את כל התוכן מסעיף 1 עד סעיף 7]
+[הדבק כאן את כל התוכן מסעיף 1 עד סעיף 8]
 
 השאלה שלי היא: [כתוב את השאלה או הבקשה שלך]
 ```
