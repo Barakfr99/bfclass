@@ -26,6 +26,7 @@ export type Database = {
           full_sentence: string
           id: string
           is_practice: boolean | null
+          question_data: Json | null
           sentence_number: number
           word_position: number
         }
@@ -40,6 +41,7 @@ export type Database = {
           full_sentence: string
           id?: string
           is_practice?: boolean | null
+          question_data?: Json | null
           sentence_number: number
           word_position: number
         }
@@ -54,6 +56,7 @@ export type Database = {
           full_sentence?: string
           id?: string
           is_practice?: boolean | null
+          question_data?: Json | null
           sentence_number?: number
           word_position?: number
         }
@@ -105,11 +108,14 @@ export type Database = {
       }
       student_answers: {
         Row: {
+          answer_data: Json | null
           binyan_correct: boolean | null
           created_at: string | null
           guf_correct: boolean | null
           id: string
+          partial_scores: Json | null
           points_earned: number | null
+          question_type: string | null
           sentence_id: string | null
           shoresh_correct: boolean | null
           student_binyan: string | null
@@ -121,11 +127,14 @@ export type Database = {
           zman_correct: boolean | null
         }
         Insert: {
+          answer_data?: Json | null
           binyan_correct?: boolean | null
           created_at?: string | null
           guf_correct?: boolean | null
           id?: string
+          partial_scores?: Json | null
           points_earned?: number | null
+          question_type?: string | null
           sentence_id?: string | null
           shoresh_correct?: boolean | null
           student_binyan?: string | null
@@ -137,11 +146,14 @@ export type Database = {
           zman_correct?: boolean | null
         }
         Update: {
+          answer_data?: Json | null
           binyan_correct?: boolean | null
           created_at?: string | null
           guf_correct?: boolean | null
           id?: string
+          partial_scores?: Json | null
           points_earned?: number | null
+          question_type?: string | null
           sentence_id?: string | null
           shoresh_correct?: boolean | null
           student_binyan?: string | null
