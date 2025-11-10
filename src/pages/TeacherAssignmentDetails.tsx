@@ -6,11 +6,12 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { useStudent } from '@/contexts/StudentContext';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Search, Eye, RotateCcw, Trash2, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Search, Eye, RotateCcw, Trash2, TrendingUp, FileText } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import ReturnForRevisionDialog from '@/components/ReturnForRevisionDialog';
 import ResetAssignmentDialog from '@/components/ResetAssignmentDialog';
 import StudentProgressDialog from '@/components/StudentProgressDialog';
+import AssignmentPreviewDialog from '@/components/AssignmentPreviewDialog';
 
 interface Student {
   id: string;
@@ -57,6 +58,7 @@ export default function TeacherAssignmentDetails() {
   const [returnDialogOpen, setReturnDialogOpen] = useState(false);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [progressDialogOpen, setProgressDialogOpen] = useState(false);
+  const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<StudentWithSubmission | null>(null);
 
@@ -238,7 +240,19 @@ export default function TeacherAssignmentDetails() {
             <ArrowLeft className="w-4 h-4" />
             חזרה לדף הבית
           </Button>
-          <h1 className="text-3xl font-bold mb-2">📝 {assignment.title}</h1>
+          
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-2">
+            <h1 className="text-3xl font-bold">📝 {assignment.title}</h1>
+            <Button 
+              variant="outline" 
+              onClick={() => setPreviewDialogOpen(true)}
+              className="gap-2"
+            >
+              <FileText className="w-4 h-4" />
+              תצוגה מקדימה
+            </Button>
+          </div>
+          
           <p className="text-muted-foreground">
             נוצר ב: {new Date(assignment.created_at).toLocaleDateString('he-IL')}
           </p>
@@ -435,6 +449,13 @@ export default function TeacherAssignmentDetails() {
       </div>
 
       {/* Dialogs */}
+      <AssignmentPreviewDialog
+        open={previewDialogOpen}
+        onOpenChange={setPreviewDialogOpen}
+        assignmentId={assignmentId!}
+        assignmentTitle={assignment.title}
+      />
+      
       {selectedSubmission && (
         <ReturnForRevisionDialog
           open={returnDialogOpen}
