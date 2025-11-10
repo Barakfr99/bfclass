@@ -3,6 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -20,9 +21,11 @@ export default function CompareVerbPairs({
   onComplete 
 }: CompareVerbPairsProps) {
   const [selectedPair, setSelectedPair] = useState<number | null>(null);
+  const [verb1Binyan, setVerb1Binyan] = useState('');
+  const [verb2Binyan, setVerb2Binyan] = useState('');
+  const [otherPairsBinyan, setOtherPairsBinyan] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // טעינת תשובה קיימת
   useEffect(() => {
     loadExistingAnswer();
   }, []);
@@ -36,9 +39,23 @@ export default function CompareVerbPairs({
       .maybeSingle();
 
     if (data?.answer_data && typeof data.answer_data === 'object' && !Array.isArray(data.answer_data)) {
-      const answerData = data.answer_data as { selected_pair?: number };
+      const answerData = data.answer_data as { 
+        selected_pair?: number;
+        verb1_binyan?: string;
+        verb2_binyan?: string;
+        other_pairs_binyan?: string;
+      };
       if (answerData.selected_pair) {
         setSelectedPair(answerData.selected_pair);
+      }
+      if (answerData.verb1_binyan) {
+        setVerb1Binyan(answerData.verb1_binyan);
+      }
+      if (answerData.verb2_binyan) {
+        setVerb2Binyan(answerData.verb2_binyan);
+      }
+      if (answerData.other_pairs_binyan) {
+        setOtherPairsBinyan(answerData.other_pairs_binyan);
       }
     }
   };
@@ -49,10 +66,23 @@ export default function CompareVerbPairs({
       return;
     }
 
+    if (!verb1Binyan.trim() || !verb2Binyan.trim()) {
+      toast.error('יש למלא את הבניין של שני הפעלים בזוג השונה');
+      return;
+    }
+
+    if (!otherPairsBinyan.trim()) {
+      toast.error('יש למלא את הבניין המשותף לזוגות האחרים');
+      return;
+    }
+
     setIsLoading(true);
 
     const answerData = {
       selected_pair: selectedPair,
+      verb1_binyan: verb1Binyan.trim(),
+      verb2_binyan: verb2Binyan.trim(),
+      other_pairs_binyan: otherPairsBinyan.trim(),
       timestamp: new Date().toISOString()
     };
 
@@ -79,12 +109,25 @@ export default function CompareVerbPairs({
     onComplete();
   };
 
+  const selectedPairData = questionData.pairs.find((p: any) => p.pair_number === selectedPair);
+
   return (
     <div className="space-y-6">
       <div className="space-y-2">
         <h3 className="text-lg font-semibold whitespace-pre-line">
           {questionData.instruction}
         </h3>
+        
+        {questionData.sub_questions && (
+          <div className="bg-muted/50 p-4 rounded-lg mt-4 space-y-2">
+            {questionData.sub_questions.part_a && (
+              <p className="text-sm">{questionData.sub_questions.part_a.text}</p>
+            )}
+            {questionData.sub_questions.part_b && (
+              <p className="text-sm">{questionData.sub_questions.part_b.text}</p>
+            )}
+          </div>
+        )}
       </div>
 
       <RadioGroup value={selectedPair?.toString() || ''} onValueChange={(value) => setSelectedPair(Number(value))}>
@@ -122,6 +165,50 @@ export default function CompareVerbPairs({
           ))}
         </div>
       </RadioGroup>
+
+      {selectedPair !== null && selectedPairData && (
+        <div className="space-y-4 border-t pt-4">
+          <h4 className="font-semibold">פרטי הזוג השונה (זוג {selectedPair}):</h4>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="verb1-binyan" className="mb-2 block">
+                בניין של הפועל הראשון: <span className="font-semibold">{selectedPairData.verb1.word}</span>
+              </Label>
+              <Input
+                id="verb1-binyan"
+                value={verb1Binyan}
+                onChange={(e) => setVerb1Binyan(e.target.value)}
+                placeholder=""
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="verb2-binyan" className="mb-2 block">
+                בניין של הפועל השני: <span className="font-semibold">{selectedPairData.verb2.word}</span>
+              </Label>
+              <Input
+                id="verb2-binyan"
+                value={verb2Binyan}
+                onChange={(e) => setVerb2Binyan(e.target.value)}
+                placeholder=""
+              />
+            </div>
+          </div>
+
+          <div className="border-t pt-4">
+            <Label htmlFor="other-binyan" className="mb-2 block">
+              הבניין המשותף לשאר הזוגות:
+            </Label>
+            <Input
+              id="other-binyan"
+              value={otherPairsBinyan}
+              onChange={(e) => setOtherPairsBinyan(e.target.value)}
+              placeholder=""
+            />
+          </div>
+        </div>
+      )}
 
       <Button 
         onClick={handleSave}

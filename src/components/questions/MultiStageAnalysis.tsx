@@ -9,6 +9,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { highlightWord } from '@/utils/textHighlight';
 
+interface VerbAnalysis {
+  sentence_number: number;
+  shoresh: string;
+  binyan: string;
+  zman: string;
+}
+
 interface MultiStageAnalysisProps {
   questionData: any;
   submissionId: string;
@@ -25,7 +32,8 @@ export default function MultiStageAnalysis({
   const [currentTab, setCurrentTab] = useState('part_a');
   const [selectedVerbs, setSelectedVerbs] = useState<Array<{ sentence: number; word: string }>>([]);
   const [selectedInfinitives, setSelectedInfinitives] = useState<Array<{ sentence: number; word: string }>>([]);
-  const [analyses, setAnalyses] = useState<Record<string, { shoresh: string; binyan: string; form: string }>>({});
+  const [infinitiveBinyan, setInfinitiveBinyan] = useState('');
+  const [analyses, setAnalyses] = useState<Record<string, { shoresh: string; binyan: string; zman: string }>>({});
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -43,8 +51,11 @@ export default function MultiStageAnalysis({
     if (data?.answer_data && typeof data.answer_data === 'object' && !Array.isArray(data.answer_data)) {
       const answerData = data.answer_data as {
         part_a?: { selected_verbs?: Array<{ sentence: number; word: string }> };
-        part_b?: { selected_infinitives?: Array<{ sentence: number; word: string }> };
-        part_c?: { analyses?: Record<string, { shoresh: string; binyan: string; form: string }> };
+        part_b?: { 
+          selected_infinitives?: Array<{ sentence: number; word: string }>;
+          binyan?: string;
+        };
+        part_c?: { analyses?: Record<string, { shoresh: string; binyan: string; zman: string }> };
       };
       
       if (answerData.part_a?.selected_verbs) {
@@ -52,6 +63,9 @@ export default function MultiStageAnalysis({
       }
       if (answerData.part_b?.selected_infinitives) {
         setSelectedInfinitives(answerData.part_b.selected_infinitives);
+      }
+      if (answerData.part_b?.binyan) {
+        setInfinitiveBinyan(answerData.part_b.binyan);
       }
       if (answerData.part_c?.analyses) {
         setAnalyses(answerData.part_c.analyses);
@@ -75,22 +89,49 @@ export default function MultiStageAnalysis({
   const toggleInfinitive = (sentence: number, word: string) => {
     const exists = selectedInfinitives.some(v => v.sentence === sentence && v.word === word);
     if (exists) {
-      setSelectedInfinitives(selectedInfinitives.filter(v => !(v.sentence === sentence && v.word === word)));
+      setSelectedInfinitives([]);
+      setInfinitiveBinyan('');
     } else {
-      if (selectedInfinitives.length < 2) {
-        setSelectedInfinitives([...selectedInfinitives, { sentence, word }]);
-      } else {
-        toast.error('ניתן לבחור עד 2 שמות פועל');
-      }
+      setSelectedInfinitives([{ sentence, word }]);
     }
   };
 
   const handleSave = async () => {
+    if (selectedVerbs.length !== 3) {
+      toast.error('יש לבחור בדיוק 3 פעלים');
+      return;
+    }
+
+    if (selectedInfinitives.length !== 1) {
+      toast.error('יש לבחור שם פועל אחד');
+      return;
+    }
+
+    if (!infinitiveBinyan.trim()) {
+      toast.error('יש למלא את הבניין של שם הפועל');
+      return;
+    }
+
+    const remainingVerbs = getRemainingVerbs();
+    const hasEmptyAnalysis = remainingVerbs.some(sentence => {
+      const key = `${sentence.sentence_number}_${sentence.highlighted_word}`;
+      const analysis = analyses[key];
+      return !analysis || !analysis.shoresh || !analysis.binyan || !analysis.zman;
+    });
+
+    if (hasEmptyAnalysis) {
+      toast.error('יש למלא את כל הניתוחים של הפעלים הנותרים (שורש, בניין וזמן)');
+      return;
+    }
+
     setIsLoading(true);
 
     const answerData = {
       part_a: { selected_verbs: selectedVerbs },
-      part_b: { selected_infinitives: selectedInfinitives },
+      part_b: { 
+        selected_infinitives: selectedInfinitives,
+        binyan: infinitiveBinyan.trim()
+      },
       part_c: { analyses }
     };
 
@@ -136,6 +177,23 @@ export default function MultiStageAnalysis({
     <div className="space-y-6">
       <h3 className="text-lg font-semibold">{questionData.instruction}</h3>
 
+      {questionData.sub_questions && (
+        <div className="bg-muted/50 p-4 rounded-lg space-y-1">
+          <h4 className="font-semibold mb-2">משימות:</h4>
+          <ol className="list-none space-y-1 text-sm">
+            {questionData.sub_questions.part_a && (
+              <li>{typeof questionData.sub_questions.part_a === 'string' ? questionData.sub_questions.part_a : questionData.sub_questions.part_a.text}</li>
+            )}
+            {questionData.sub_questions.part_b && (
+              <li>{typeof questionData.sub_questions.part_b === 'string' ? questionData.sub_questions.part_b : questionData.sub_questions.part_b.text}</li>
+            )}
+            {questionData.sub_questions.part_c && (
+              <li>{typeof questionData.sub_questions.part_c === 'string' ? questionData.sub_questions.part_c : questionData.sub_questions.part_c.text}</li>
+            )}
+          </ol>
+        </div>
+      )}
+
       <Tabs value={currentTab} onValueChange={setCurrentTab}>
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="part_a">חלק א - בחירת פעלים</TabsTrigger>
@@ -176,28 +234,45 @@ export default function MultiStageAnalysis({
           <p className="text-sm text-muted-foreground">
             {typeof questionData.sub_questions?.part_b === 'string' 
               ? questionData.sub_questions.part_b 
-              : (questionData.sub_questions?.part_b?.text || 'בחרו 2 שמות פועל מהמשפטים הבאים')}
-            <span className="font-semibold mr-2">({selectedInfinitives.length}/2)</span>
+              : (questionData.sub_questions?.part_b?.text || 'בחרו שם פועל אחד וציינו את הבניין שלו')}
+            <span className="font-semibold mr-2">({selectedInfinitives.length}/1)</span>
           </p>
           
           <div className="space-y-3">
-            {questionData.sentences.map((sentence: any) => (
-              <Card key={sentence.sentence_number}>
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <Checkbox
-                      checked={isInfinitiveSelected(sentence.sentence_number, sentence.highlighted_word)}
-                      onCheckedChange={() => toggleInfinitive(sentence.sentence_number, sentence.highlighted_word)}
-                      disabled={selectedInfinitives.length >= 2 && !isInfinitiveSelected(sentence.sentence_number, sentence.highlighted_word)}
-                    />
-                    <div className="flex-1">
-                      <div className="text-sm text-muted-foreground mb-1">({sentence.sentence_number})</div>
-                      <p className="text-lg">{highlightWord(sentence.text, sentence.highlighted_word)}</p>
+            {questionData.sentences
+              .filter((s: any) => s.is_infinitive)
+              .map((sentence: any) => (
+                <Card key={sentence.sentence_number}>
+                  <CardContent className="p-4">
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3">
+                        <Checkbox
+                          checked={isInfinitiveSelected(sentence.sentence_number, sentence.highlighted_word)}
+                          onCheckedChange={() => toggleInfinitive(sentence.sentence_number, sentence.highlighted_word)}
+                        />
+                        <div className="flex-1">
+                          <div className="text-sm text-muted-foreground mb-1">({sentence.sentence_number})</div>
+                          <p className="text-lg">{highlightWord(sentence.text, sentence.highlighted_word)}</p>
+                        </div>
+                      </div>
+                      
+                      {isInfinitiveSelected(sentence.sentence_number, sentence.highlighted_word) && (
+                        <div className="mr-8">
+                          <Label htmlFor="infinitive-binyan" className="text-sm mb-2 block">
+                            בניין של שם הפועל:
+                          </Label>
+                          <Input
+                            id="infinitive-binyan"
+                            value={infinitiveBinyan}
+                            onChange={(e) => setInfinitiveBinyan(e.target.value)}
+                            placeholder=""
+                          />
+                        </div>
+                      )}
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              ))}
           </div>
         </TabsContent>
 
@@ -211,7 +286,7 @@ export default function MultiStageAnalysis({
           <div className="space-y-4">
             {getRemainingVerbs().map((sentence: any) => {
               const key = `${sentence.sentence_number}_${sentence.highlighted_word}`;
-              const analysis = analyses[key] || { shoresh: '', binyan: '', form: '' };
+              const analysis = analyses[key] || { shoresh: '', binyan: '', zman: '' };
               
               return (
                 <Card key={key}>
@@ -228,7 +303,7 @@ export default function MultiStageAnalysis({
                             ...analyses,
                             [key]: { ...analysis, shoresh: e.target.value }
                           })}
-                          placeholder="למשל: כ.ת.ב"
+                          placeholder=""
                         />
                       </div>
                       <div>
@@ -239,18 +314,18 @@ export default function MultiStageAnalysis({
                             ...analyses,
                             [key]: { ...analysis, binyan: e.target.value }
                           })}
-                          placeholder="למשל: פעל"
+                          placeholder=""
                         />
                       </div>
                       <div>
-                        <Label>צורה</Label>
+                        <Label>זמן</Label>
                         <Input
-                          value={analysis.form}
+                          value={analysis.zman}
                           onChange={(e) => setAnalyses({
                             ...analyses,
-                            [key]: { ...analysis, form: e.target.value }
+                            [key]: { ...analysis, zman: e.target.value }
                           })}
-                          placeholder="למשל: בינוני הווה"
+                          placeholder=""
                         />
                       </div>
                     </div>

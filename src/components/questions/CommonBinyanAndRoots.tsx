@@ -126,7 +126,7 @@ export default function CommonBinyanAndRoots({
             <Input
               value={commonBinyan}
               onChange={(e) => setCommonBinyan(e.target.value)}
-              placeholder="למשל: התפעל"
+              placeholder=""
               className="mt-2"
             />
           </CardContent>
@@ -151,7 +151,7 @@ export default function CommonBinyanAndRoots({
                     ...roots,
                     [sentence.sentence_number]: e.target.value
                   })}
-                  placeholder="למשל: ז.ק.נ"
+                  placeholder=""
                   className="mt-1"
                 />
               </div>
