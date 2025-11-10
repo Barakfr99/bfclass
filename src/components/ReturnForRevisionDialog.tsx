@@ -37,22 +37,13 @@ export default function ReturnForRevisionDialog({
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
-    if (!feedback || feedback.trim() === '') {
-      toast({
-        title: 'שגיאה',
-        description: 'יש להזין פידבק למידן',
-        variant: 'destructive',
-      });
-      return;
-    }
-
     setLoading(true);
     try {
       const { error } = await supabase
         .from('submissions')
         .update({
           status: 'returned_for_revision',
-          teacher_feedback: feedback.trim(),
+          teacher_feedback: feedback.trim() || null,
           reviewed_at: new Date().toISOString(),
         })
         .eq('id', submission.id);
@@ -102,7 +93,7 @@ export default function ReturnForRevisionDialog({
 
           <div className="space-y-2">
             <Label htmlFor="feedback">
-              💬 פידבק למידן <span className="text-destructive">*</span>
+              💬 פידבק למידן <span className="text-muted-foreground text-xs">(אופציונאלי)</span>
             </Label>
             <Textarea
               id="feedback"
@@ -112,11 +103,9 @@ export default function ReturnForRevisionDialog({
               rows={4}
               className="resize-none"
             />
-            {!feedback && (
-              <p className="text-xs text-muted-foreground">
-                חובה למלא פידבק כדי להסביר למידן מה צריך לתקן
-              </p>
-            )}
+            <p className="text-xs text-muted-foreground">
+              ניתן להחזיר לתיקון עם או בלי הערה
+            </p>
           </div>
 
           <div className="flex items-start gap-2 p-3 bg-warning/10 rounded-md border border-warning/20">
@@ -140,7 +129,7 @@ export default function ReturnForRevisionDialog({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={loading || !feedback.trim()}
+            disabled={loading}
           >
             {loading ? 'מחזיר...' : 'אשר והחזר לתיקון'}
           </Button>
