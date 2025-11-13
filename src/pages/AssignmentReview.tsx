@@ -206,33 +206,54 @@ export default function AssignmentReview() {
     setSubmitting(true);
 
     try {
-      // Get submission
-      const { data: submission } = await supabase
+      // Ensure a submission exists (create if missing)
+      let { data: submission, error: submissionErr } = await supabase
         .from('submissions')
         .select('id, submission_count')
         .eq('student_id', student?.studentId)
         .eq('assignment_id', assignmentId)
-        .single();
+        .maybeSingle();
 
-      if (!submission) return;
+      if (submissionErr) {
+        console.error('Error fetching submission:', submissionErr);
+        throw new Error('בעיה בשליפת ההגשה');
+      }
+
+      if (!submission) {
+        const { data: created, error: createErr } = await supabase
+          .from('submissions')
+          .insert({
+            student_id: student?.studentId,
+            assignment_id: assignmentId,
+            status: 'in_progress',
+            submission_count: 0
+          })
+          .select('id, submission_count')
+          .single();
+
+        if (createErr || !created) {
+          console.error('Error creating submission:', createErr);
+          throw new Error('בעיה ביצירת ההגשה');
+        }
+        submission = created;
+      }
 
       // Calculate scores - count all correct fields
       let totalCorrectFields = 0;
       let totalFields = 0;
-      const answerUpdates = [];
+      const answerUpdates: any[] = [];
 
       for (const answer of answers) {
-        // בדיקה אם זו שאלה מורכבת
+        // Advanced question
         if (answer.question_data) {
           const validationResult = validateAdvancedQuestion(
             answer.question_data,
             answer.answer_data
           );
-          
-          // הוסף את הציון המלא (כבר בסולם 0-10)
+
           totalCorrectFields += validationResult.score;
           totalFields += 10;
-          
+
           answerUpdates.push({
             sentence_id: answer.sentence_id,
             is_advanced: true,
@@ -241,28 +262,22 @@ export default function AssignmentReview() {
             is_correct: validationResult.correct
           });
         } else {
-          // שאלה רגילה
+          // Regular question
           const shoreshCorrect = validateShoresh(answer.student_shoresh || '', answer.correct_shoresh);
-          const binyanCorrect = answer.correct_binyan 
-            ? validateBinyan(answer.student_binyan || '', answer.correct_binyan)
-            : true;
-          const zmanCorrect = validateZman(answer.student_zman || '', answer.correct_zman);
-          const gufCorrect = validateGuf(answer.student_guf || '', answer.correct_guf);
-          
           const hasBinyan = answer.correct_binyan !== null;
+          const binyanCorrect = hasBinyan ? validateBinyan(answer.student_binyan || '', answer.correct_binyan as string) : true;
+          const zmanCorrect = validateZman(answer.student_zman || '', answer.correct_zman);
           const hasGuf = answer.correct_guf !== null;
-          
-          // Count fields for this sentence
+          const gufCorrect = validateGuf(answer.student_guf || '', answer.correct_guf);
+
           const fieldsInSentence = 2 + (hasBinyan ? 1 : 0) + (hasGuf ? 1 : 0);
           totalFields += fieldsInSentence;
-          
-          // Count correct fields
+
           if (shoreshCorrect) totalCorrectFields++;
           if (hasBinyan && binyanCorrect) totalCorrectFields++;
           if (zmanCorrect) totalCorrectFields++;
           if (hasGuf && gufCorrect) totalCorrectFields++;
-          
-          // Store validation results for this answer
+
           answerUpdates.push({
             sentence_id: answer.sentence_id,
             is_advanced: false,
@@ -274,14 +289,13 @@ export default function AssignmentReview() {
         }
       }
 
-      // Calculate final score out of 100 with standard rounding
-      const totalScore = Math.round((totalCorrectFields / totalFields) * 100);
+      // Guard against division by zero
+      const totalScore = totalFields > 0 ? Math.round((totalCorrectFields / totalFields) * 100) : 0;
 
-      // Update all answers with validation results
+      // Update all answers with validation results (check for errors)
       for (const update of answerUpdates) {
         if ((update as any).is_advanced) {
-          // עדכון לשאלה מורכבת
-          await supabase
+          const { error } = await supabase
             .from('student_answers')
             .update({
               is_correct: (update as any).is_correct,
@@ -290,9 +304,12 @@ export default function AssignmentReview() {
             })
             .eq('submission_id', submission.id)
             .eq('sentence_id', update.sentence_id);
+          if (error) {
+            console.error('Error updating advanced answer:', error);
+            throw new Error('בעיה בעדכון תשובות');
+          }
         } else {
-          // עדכון לשאלה רגילה
-          await supabase
+          const { error } = await supabase
             .from('student_answers')
             .update({
               shoresh_correct: (update as any).shoresh_correct,
@@ -303,11 +320,15 @@ export default function AssignmentReview() {
             })
             .eq('submission_id', submission.id)
             .eq('sentence_id', update.sentence_id);
+          if (error) {
+            console.error('Error updating regular answer:', error);
+            throw new Error('בעיה בעדכון תשובות');
+          }
         }
       }
 
       // Update submission status
-      await supabase
+      const { error: updateSubmissionErr } = await supabase
         .from('submissions')
         .update({
           status: 'submitted',
@@ -315,9 +336,14 @@ export default function AssignmentReview() {
           submitted_at: new Date().toISOString(),
           last_submitted_at: new Date().toISOString(),
           submission_count: (submission.submission_count || 0) + 1,
-          teacher_feedback: null // Clear feedback on resubmission
+          teacher_feedback: null
         })
         .eq('id', submission.id);
+
+      if (updateSubmissionErr) {
+        console.error('Error submitting:', updateSubmissionErr);
+        throw new Error('בעיה בעדכון סטטוס ההגשה');
+      }
 
       toast.success('התרגיל הוגש בהצלחה!');
       navigate(`/assignment/${assignmentId}/results`);
