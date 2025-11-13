@@ -41,6 +41,7 @@ export default function AssignmentPreviewDialog({
   const [sentences, setSentences] = useState<Sentence[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<'single' | 'all'>('single');
 
   useEffect(() => {
     if (open) {
@@ -111,35 +112,57 @@ export default function AssignmentPreviewDialog({
           </Card>
         ) : (
           <div className="space-y-6">
-            {/* Progress */}
-            <div className="flex items-center justify-between">
-              <Badge variant="outline">
-                שאלה {currentIndex + 1} מתוך {sentences.length}
-              </Badge>
+            {/* View Mode Toggle */}
+            <div className="flex items-center justify-between bg-muted/30 p-4 rounded-lg">
               <div className="flex gap-2">
                 <Button
-                  variant="outline"
+                  variant={viewMode === 'single' ? 'default' : 'outline'}
                   size="sm"
-                  onClick={handlePrev}
-                  disabled={currentIndex === 0}
+                  onClick={() => setViewMode('single')}
                 >
-                  <ChevronRight className="w-4 h-4" />
-                  הקודם
+                  תצוגת עמוד יחיד
                 </Button>
                 <Button
-                  variant="outline"
+                  variant={viewMode === 'all' ? 'default' : 'outline'}
                   size="sm"
-                  onClick={handleNext}
-                  disabled={currentIndex === sentences.length - 1}
+                  onClick={() => setViewMode('all')}
                 >
-                  הבא
-                  <ChevronLeft className="w-4 h-4" />
+                  תצוגה מרוכזת
                 </Button>
               </div>
+              {viewMode === 'single' && (
+                <Badge variant="outline">
+                  שאלה {currentIndex + 1} מתוך {sentences.length}
+                </Badge>
+              )}
             </div>
 
-            {/* Question Display */}
-            {currentSentence && (
+            {viewMode === 'single' ? (
+              <>
+                {/* Navigation for single view */}
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePrev}
+                    disabled={currentIndex === 0}
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                    הקודם
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleNext}
+                    disabled={currentIndex === sentences.length - 1}
+                  >
+                    הבא
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                </div>
+
+                {/* Single Question Display */}
+                {currentSentence && (
               <Card>
                 <CardContent className="pt-6">
                   {currentSentence.question_data ? (
@@ -171,6 +194,53 @@ export default function AssignmentPreviewDialog({
                   )}
                 </CardContent>
               </Card>
+            )}
+              </>
+            ) : (
+              /* All Questions Display - Consolidated View */
+              <div className="space-y-6">
+                <div className="bg-primary/5 p-4 rounded-lg">
+                  <p className="text-sm text-muted-foreground">
+                    ⚠️ זוהי תצוגה מרוכזת של כל השאלות בתרגיל - הרכיבים לא פעילים
+                  </p>
+                </div>
+                
+                {sentences.map((sentence, index) => (
+                  <Card key={sentence.id} className="border-2">
+                    <CardContent className="pt-6">
+                      <div className="mb-4 flex items-center gap-2">
+                        <Badge variant="secondary">שאלה {index + 1}</Badge>
+                        <span className="text-sm text-muted-foreground">
+                          משפט: {sentence.full_sentence}
+                        </span>
+                      </div>
+                      
+                      {sentence.question_data ? (
+                        <div className="pointer-events-none opacity-90">
+                          <AdvancedQuestion
+                            questionData={sentence.question_data}
+                            submissionId="preview-mode"
+                            sentenceId={sentence.id}
+                            onComplete={() => {}}
+                          />
+                        </div>
+                      ) : (
+                        <div className="text-center py-4">
+                          <p className="text-sm text-muted-foreground">
+                            שאלה רגילה - נתח את המילה: <strong>{sentence.analyzed_word}</strong>
+                          </p>
+                          <div className="mt-3 flex gap-4 justify-center text-xs text-muted-foreground">
+                            <span>שורש: {sentence.correct_shoresh}</span>
+                            {sentence.correct_binyan && <span>בניין: {sentence.correct_binyan}</span>}
+                            <span>זמן: {sentence.correct_zman}</span>
+                            {sentence.correct_guf && <span>גוף: {sentence.correct_guf}</span>}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             )}
 
             {/* Legend */}

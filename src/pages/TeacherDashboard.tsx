@@ -488,9 +488,10 @@ export default function TeacherDashboard() {
                         צפה בפירוט
                       </Button>
                       <Button 
-                        variant={assignment.is_hidden ? "outline" : "destructive"}
+                        variant={assignment.is_hidden ? "default" : "destructive"}
                         size="sm"
                         onClick={() => toggleAssignmentVisibility(assignment.id, assignment.is_hidden || false)}
+                        className={assignment.is_hidden ? "bg-green-600 hover:bg-green-700 text-white" : ""}
                       >
                         {assignment.is_hidden ? (
                           <>
