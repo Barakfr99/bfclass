@@ -78,6 +78,7 @@ export type Database = {
           due_date: string | null
           id: string
           instructions_text: string
+          is_hidden: boolean | null
           is_published: boolean | null
           title: string
           total_sentences: number
@@ -89,6 +90,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           instructions_text: string
+          is_hidden?: boolean | null
           is_published?: boolean | null
           title: string
           total_sentences: number
@@ -100,6 +102,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           instructions_text?: string
+          is_hidden?: boolean | null
           is_published?: boolean | null
           title?: string
           total_sentences?: number

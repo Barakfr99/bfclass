@@ -110,10 +110,11 @@ export default function TeacherDashboard() {
         ? submittedSubmissions.reduce((sum, s) => sum + (s.total_score || 0), 0) / submittedSubmissions.length
         : 0;
 
-      // Load assignments with stats
+      // Load assignments with stats (only visible ones)
       const { data: assignmentsData } = await supabase
         .from('assignments')
         .select('*')
+        .eq('is_hidden', false)
         .order('created_at', { ascending: false });
 
       const assignmentsWithStats = await Promise.all(
@@ -153,10 +154,11 @@ export default function TeacherDashboard() {
 
   const loadStudentAssignments = async (studentId: string) => {
     try {
-      // Get all assignments
+      // Get all assignments (only visible ones)
       const { data: assignmentsData } = await supabase
         .from('assignments')
         .select('*')
+        .eq('is_hidden', false)
         .order('created_at', { ascending: false });
 
       const totalAssignments = assignmentsData?.length || 0;
