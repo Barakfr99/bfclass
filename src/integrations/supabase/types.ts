@@ -76,6 +76,7 @@ export type Database = {
           created_at: string | null
           description: string | null
           due_date: string | null
+          grade_level: string | null
           id: string
           instructions_text: string
           is_hidden: boolean | null
@@ -88,6 +89,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           due_date?: string | null
+          grade_level?: string | null
           id?: string
           instructions_text: string
           is_hidden?: boolean | null
@@ -100,6 +102,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           due_date?: string | null
+          grade_level?: string | null
           id?: string
           instructions_text?: string
           is_hidden?: boolean | null
@@ -225,6 +228,7 @@ export type Database = {
       students: {
         Row: {
           created_at: string | null
+          grade_level: string | null
           id: string
           is_teacher: boolean | null
           student_id: string
@@ -232,6 +236,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          grade_level?: string | null
           id?: string
           is_teacher?: boolean | null
           student_id: string
@@ -239,6 +244,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          grade_level?: string | null
           id?: string
           is_teacher?: boolean | null
           student_id?: string

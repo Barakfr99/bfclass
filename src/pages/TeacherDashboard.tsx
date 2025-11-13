@@ -6,10 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useStudent } from '@/contexts/StudentContext';
 import { supabase } from '@/integrations/supabase/client';
-import { LogOut, Users, FileCheck, TrendingUp, Clock, User, RotateCcw } from 'lucide-react';
+import { LogOut, Users, FileCheck, TrendingUp, Clock, User, RotateCcw, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import ReturnForRevisionDialog from '@/components/ReturnForRevisionDialog';
 import ResetAssignmentDialog from '@/components/ResetAssignmentDialog';
+import AssignmentPreviewDialog from '@/components/AssignmentPreviewDialog';
 
 interface Stats {
   totalStudents: number;
@@ -27,6 +28,8 @@ interface Assignment {
   total_sentences: number;
   submissions_count: number;
   average_score: number;
+  is_hidden?: boolean;
+  grade_level?: string;
 }
 
 interface StudentInfo {
@@ -75,6 +78,9 @@ export default function TeacherDashboard() {
     };
   } | null>(null);
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<string>('');
+  const [selectedGradeLevel, setSelectedGradeLevel] = useState<string>('all');
+  const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
+  const [previewAssignment, setPreviewAssignment] = useState<{ id: string; title: string } | null>(null);
 
   useEffect(() => {
     if (!student || !student.isTeacher) {
@@ -92,10 +98,16 @@ export default function TeacherDashboard() {
   const loadData = async () => {
     try {
       // Load all students
-      const { data: studentsData, count: studentsCount } = await supabase
+      let studentsQuery = supabase
         .from('students')
         .select('*', { count: 'exact' })
-        .eq('is_teacher', false)
+        .eq('is_teacher', false);
+      
+      if (selectedGradeLevel !== 'all') {
+        studentsQuery = studentsQuery.eq('grade_level', selectedGradeLevel);
+      }
+      
+      const { data: studentsData, count: studentsCount } = await studentsQuery
         .order('student_name');
       
       setStudents(studentsData || []);
@@ -110,11 +122,16 @@ export default function TeacherDashboard() {
         ? submittedSubmissions.reduce((sum, s) => sum + (s.total_score || 0), 0) / submittedSubmissions.length
         : 0;
 
-      // Load assignments with stats (only visible ones)
-      const { data: assignmentsData } = await supabase
+      // Load assignments with stats (filter by grade level if selected)
+      let assignmentsQuery = supabase
         .from('assignments')
-        .select('*')
-        .eq('is_hidden', false)
+        .select('*');
+      
+      if (selectedGradeLevel !== 'all') {
+        assignmentsQuery = assignmentsQuery.eq('grade_level', selectedGradeLevel);
+      }
+      
+      const { data: assignmentsData } = await assignmentsQuery
         .order('created_at', { ascending: false });
 
       const assignmentsWithStats = await Promise.all(
@@ -154,11 +171,16 @@ export default function TeacherDashboard() {
 
   const loadStudentAssignments = async (studentId: string) => {
     try {
-      // Get all assignments (only visible ones)
-      const { data: assignmentsData } = await supabase
+      // Get all assignments (filter by grade level if selected)
+      let assignmentsQuery = supabase
         .from('assignments')
-        .select('*')
-        .eq('is_hidden', false)
+        .select('*');
+      
+      if (selectedGradeLevel !== 'all') {
+        assignmentsQuery = assignmentsQuery.eq('grade_level', selectedGradeLevel);
+      }
+      
+      const { data: assignmentsData } = await assignmentsQuery
         .order('created_at', { ascending: false });
 
       const totalAssignments = assignmentsData?.length || 0;
@@ -219,6 +241,10 @@ export default function TeacherDashboard() {
     }
   }, [selectedStudent, students]);
 
+  useEffect(() => {
+    loadData();
+  }, [selectedGradeLevel]);
+
   const getStatusDisplay = (status: string) => {
     switch (status) {
       case 'not_started':
@@ -271,6 +297,28 @@ export default function TeacherDashboard() {
     } else {
       loadData();
     }
+  };
+
+  const toggleAssignmentVisibility = async (assignmentId: string, currentHiddenState: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('assignments')
+        .update({ is_hidden: !currentHiddenState })
+        .eq('id', assignmentId);
+
+      if (error) throw error;
+
+      toast.success(currentHiddenState ? 'המשימה נחשפה לתלמידים' : 'המשימה הוסתרה מהתלמידים');
+      loadData();
+    } catch (error) {
+      console.error('Error toggling assignment visibility:', error);
+      toast.error('שגיאה בשינוי מצב המשימה');
+    }
+  };
+
+  const handlePreviewAssignment = (assignmentId: string, assignmentTitle: string) => {
+    setPreviewAssignment({ id: assignmentId, title: assignmentTitle });
+    setPreviewDialogOpen(true);
   };
 
   if (loading) {
@@ -366,11 +414,11 @@ export default function TeacherDashboard() {
         <div className="space-y-4">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <h2 className="text-2xl font-bold">רשימת משימות</h2>
-            <div className="flex gap-4 items-center w-full md:w-auto">
+            <div className="flex gap-4 items-center w-full md:w-auto flex-wrap">
               <div className="flex items-center gap-2 flex-1 md:flex-initial">
                 <User className="w-4 h-4 text-muted-foreground" />
                 <Select value={selectedStudent} onValueChange={setSelectedStudent}>
-                  <SelectTrigger className="w-full md:w-[250px]">
+                  <SelectTrigger className="w-full md:w-[200px]">
                     <SelectValue placeholder="בחר תלמיד" />
                   </SelectTrigger>
                   <SelectContent>
@@ -383,6 +431,19 @@ export default function TeacherDashboard() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="flex items-center gap-2">
+                <Select value={selectedGradeLevel} onValueChange={setSelectedGradeLevel}>
+                  <SelectTrigger className="w-[150px]">
+                    <SelectValue placeholder="שכבת לימוד" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">כל השכבות</SelectItem>
+                    <SelectItem value="י׳">י׳</SelectItem>
+                    <SelectItem value="י״א">י״א</SelectItem>
+                    <SelectItem value="י״ב">י״ב</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <Button disabled>➕ צור משימה חדשה</Button>
             </div>
           </div>
@@ -390,11 +451,19 @@ export default function TeacherDashboard() {
           {selectedStudent === 'all' ? (
             // Show all assignments with overall stats
             assignments.map(assignment => (
-              <Card key={assignment.id}>
+              <Card key={assignment.id} className={assignment.is_hidden ? 'opacity-60 border-dashed' : ''}>
                 <CardHeader>
                   <div className="flex justify-between items-start">
-                    <div className="space-y-2">
-                      <CardTitle className="text-xl">📝 {assignment.title}</CardTitle>
+                    <div className="space-y-2 flex-1">
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-xl">📝 {assignment.title}</CardTitle>
+                        {assignment.is_hidden && (
+                          <Badge variant="secondary" className="text-xs">מוסתר</Badge>
+                        )}
+                        {assignment.grade_level && (
+                          <Badge variant="outline" className="text-xs">{assignment.grade_level}</Badge>
+                        )}
+                      </div>
                       <div className="flex gap-4 text-sm text-muted-foreground">
                         <span>📅 {new Date(assignment.created_at).toLocaleDateString('he-IL')}</span>
                         <span>👥 {assignment.submissions_count} מתוך {stats.totalStudents} הגישו</span>
@@ -403,13 +472,37 @@ export default function TeacherDashboard() {
                         )}
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handlePreviewAssignment(assignment.id, assignment.title)}
+                      >
+                        👁️ תצוגה מקדימה
+                      </Button>
                       <Button 
                         variant="outline" 
                         size="sm"
                         onClick={() => navigate(`/teacher/assignment/${assignment.id}`)}
                       >
                         צפה בפירוט
+                      </Button>
+                      <Button 
+                        variant={assignment.is_hidden ? "default" : "secondary"}
+                        size="sm"
+                        onClick={() => toggleAssignmentVisibility(assignment.id, assignment.is_hidden || false)}
+                      >
+                        {assignment.is_hidden ? (
+                          <>
+                            <Eye className="w-4 h-4 mr-1" />
+                            חשוף
+                          </>
+                        ) : (
+                          <>
+                            <EyeOff className="w-4 h-4 mr-1" />
+                            הסתר
+                          </>
+                        )}
                       </Button>
                     </div>
                   </div>
@@ -550,6 +643,15 @@ export default function TeacherDashboard() {
             }}
             assignmentId={selectedAssignmentId}
             onSuccess={handleResetSuccess}
+          />
+        )}
+
+        {previewDialogOpen && previewAssignment && (
+          <AssignmentPreviewDialog
+            open={previewDialogOpen}
+            onOpenChange={setPreviewDialogOpen}
+            assignmentId={previewAssignment.id}
+            assignmentTitle={previewAssignment.title}
           />
         )}
       </div>
