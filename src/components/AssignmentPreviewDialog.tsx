@@ -74,7 +74,6 @@ export default function AssignmentPreviewDialog({
   };
 
   const currentSentence = sentences[currentIndex];
-  const hasAdvancedQuestions = sentences.some(s => s.question_data);
 
   const handleNext = () => {
     if (currentIndex < sentences.length - 1) {
@@ -102,14 +101,11 @@ export default function AssignmentPreviewDialog({
           <div className="py-12 text-center">
             <p>טוען...</p>
           </div>
-        ) : !hasAdvancedQuestions ? (
+        ) : sentences.length === 0 ? (
           <Card>
             <CardContent className="py-8 text-center">
               <p className="text-muted-foreground">
-                תרגיל זה לא כולל שאלות מורכבות.
-              </p>
-              <p className="text-sm text-muted-foreground mt-2">
-                תצוגה מקדימה זמינה רק לתרגילים עם שאלות מורכבות.
+                לא נמצאו משפטים במשימה זו.
               </p>
             </CardContent>
           </Card>
