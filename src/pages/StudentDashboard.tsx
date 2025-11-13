@@ -65,6 +65,7 @@ export default function StudentDashboard() {
         .from('assignments')
         .select('*')
         .eq('is_published', true)
+        .eq('is_hidden', false)
         .order('created_at', { ascending: false });
 
       const { data: submissionsData } = await supabase
