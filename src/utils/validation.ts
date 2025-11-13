@@ -233,6 +233,11 @@ export function validateAdvancedQuestion(
   questionData: any,
   answerData: any
 ): { correct: boolean; score: number; partial_scores?: any } {
+  // אם אין תשובה, החזר ציון 0
+  if (!answerData) {
+    return { correct: false, score: 0 };
+  }
+  
   const questionType = questionData.question_type;
 
   switch (questionType) {
