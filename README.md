@@ -1,73 +1,146 @@
-# Welcome to your Lovable project
+# Hebrew Word Wiz - חוקיות אימות דקדוק
 
-## Project info
+## נרמול טקסט עברי (`normalizeHebrew`)
 
-**URL**: https://lovable.dev/projects/b8045799-9505-4d88-8b4b-ae944a56cc35
+כל קלט עובר נרמול לפני השוואה:
 
-## How can I edit this code?
+1. **הסרת ניקוד** — כל סימני הניקוד (Unicode range `\u0591-\u05C7`) מוסרים
+2. **הסרת סימנים** — נקודות `.`, מקפים `-`, רווחים, גרשיים `"`, `'`, `״`, `׳`
+3. **המרת אותיות סופיות לרגילות:**
+   - `ך` → `כ`
+   - `ם` → `מ`
+   - `ן` → `נ`
+   - `ף` → `פ`
+   - `ץ` → `צ`
+4. **trim**
 
-There are several ways of editing your application.
+### דוגמה
 
-**Use Lovable**
+הקלט `כ-ת-ב` מנורמל ל-`כתב`.
+הקלט `כתך` מנורמל ל-`כתכ`.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/b8045799-9505-4d88-8b4b-ae944a56cc35) and start prompting.
+---
 
-Changes made via Lovable will be committed automatically to this repo.
+## אימות שורש (Shoresh)
 
-**Use your preferred IDE**
+**שיטה:** השוואה ישירה בין הקלט המנורמל לשורש הנכון המנורמל.
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+**מתקבל ✅:**
+- `כתב` — ללא שינוי
+- `כ-ת-ב` — מקפים מוסרים
+- `כ.ת.ב` — נקודות מוסרות
+- `כת"ב` — גרשיים מוסרים
+- `כתב` עם ניקוד — ניקוד מוסר
+- **אותיות סופיות מתקבלות** — למשל אם השורש הוא `שמר`, התלמיד יכול לכתוב `שמר` או `שמך` (כי `ך`→`כ` ו-`ר` נשאר `ר`, אבל רק אם התוצאה המנורמלת זהה). דוגמה נכונה: שורש `כנס` — אפשר לכתוב `כנס` או `כנץ` (כי `ץ`→`צ`... לא, זה לא שווה). **בפועל:** אות סופית מתקבלת רק אם היא המקבילה הסופית של האות הנכונה. למשל עבור שורש `כתב`: `ך-ת-ב` ✅ (כי `ך`→`כ`).
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+**נדחה ❌:**
+- אות שגויה (למשל `כתד` במקום `כתב`)
+- שורש חלקי (למשל `כת` במקום `כתב`)
+- שורש עם אותיות נוספות
 
-Follow these steps:
+---
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+## אימות בניין (Binyan)
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+**שיטה:** הקלט המנורמל מושווה מול **רשימת וריאנטים מוגדרת מראש** לכל בניין.
 
-# Step 3: Install the necessary dependencies.
-npm i
+| בניין (value) | תצוגה | וריאנטים מתקבלים |
+|---|---|---|
+| `פעל` | פעל / קל | `פעל`, `קל`, `פעלקל`, `קלפעל` |
+| `נפעל` | נפעל | `נפעל`, `ניפעל` |
+| `פיעל` | פיעל | `פיעל` |
+| `פועל` | פועל | `פועל` |
+| `הפעיל` | הפעיל | `הפעיל`, `היפעיל` |
+| `הופעל` | הופעל | `הופעל` |
+| `התפעל` | התפעל | `התפעל`, `היתפעל` |
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+כל וריאנט עובר את אותו נרמול, כך שניקוד/רווחים/אותיות סופיות לא משנים.
+
+**מתקבל ✅:**
+- `פעל` עבור בניין פעל
+- `קל` עבור בניין פעל
+- `היפעיל` עבור בניין הפעיל
+
+**נדחה ❌:**
+- `פיעל` עבור בניין פעל (בניין שגוי)
+- כל טקסט שלא ברשימת הוריאנטים
+
+---
+
+## אימות זמן (Zman)
+
+**שיטה:** זהה לבניין — השוואה מול וריאנטים.
+
+| זמן (value) | תצוגה | וריאנטים מתקבלים |
+|---|---|---|
+| `עבר` | עבר | `עבר` |
+| `הווה` | הווה / בינוני | `הווה`, `בינוני` |
+| `עתיד` | עתיד | `עתיד` |
+| `ציווי` | ציווי | `ציווי` |
+| `שם פועל` | שם פועל | `שםפועל`, `שם פועל` |
+
+---
+
+## אימות גוף (Guf)
+
+**שיטה:** זהה — השוואה מול וריאנטים. אם אין גוף (שם פועל), תמיד מחזיר `true`.
+
+| גוף (value) | תצוגה | כינוי | מגדר |
+|---|---|---|---|
+| `מדבר` | אני → מדבר | אני | זכר |
+| `מדברת` | אני → מדברת | אני | נקבה |
+| `מדברים` | אנחנו → מדברים | אנחנו | זכר/רבים |
+| `מדברות` | אנחנו → מדברות | אנחנו | נקבה/רבות |
+| `נוכח` | אתה → נוכח | אתה | זכר |
+| `נוכחת` | את → נוכחת | את | נקבה |
+| `נוכחים` | אתם → נוכחים | אתם | זכר/רבים |
+| `נוכחות` | אתן → נוכחות | אתן | נקבה/רבות |
+| `נסתר` | הוא → נסתר | הוא | זכר |
+| `נסתרת` | היא → נסתרת | היא | נקבה |
+| `נסתרים` | הם → נסתרים | הם | זכר/רבים |
+| `נסתרות` | הן → נסתרות | הן | נקבה/רבות |
+
+---
+
+## חישוב ציון למשפט
+
+- **עם גוף (4 שדות):** 2.5 נקודות לכל שדה נכון (מקסימום 10)
+- **בלי גוף (3 שדות):** 3.33 נקודות לכל שדה נכון (מקסימום 10)
+
+---
+
+## קוד לשימוש חוזר
+
+```typescript
+function normalizeHebrew(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/[\u0591-\u05C7]/g, '')   // ניקוד
+    .replace(/[.\-\s"'״׳]/g, '')       // סימנים
+    .replace(/ך/g, 'כ')
+    .replace(/ם/g, 'מ')
+    .replace(/ן/g, 'נ')
+    .replace(/ף/g, 'פ')
+    .replace(/ץ/g, 'צ')
+    .trim();
+}
+
+function validateShoresh(input: string, correct: string): boolean {
+  return normalizeHebrew(input) === normalizeHebrew(correct);
+}
+
+function validateBinyan(input: string, correctBinyan: string): boolean {
+  const variants = BINYAN_VARIANTS[correctBinyan] || [correctBinyan];
+  return variants.some(v => normalizeHebrew(v) === normalizeHebrew(input));
+}
+
+const BINYAN_VARIANTS: Record<string, string[]> = {
+  'פעל': ['פעל', 'קל', 'פעלקל', 'קלפעל'],
+  'נפעל': ['נפעל', 'ניפעל'],
+  'פיעל': ['פיעל'],
+  'פועל': ['פועל'],
+  'הפעיל': ['הפעיל', 'היפעיל'],
+  'הופעל': ['הופעל'],
+  'התפעל': ['התפעל', 'היתפעל'],
+};
 ```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/b8045799-9505-4d88-8b4b-ae944a56cc35) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
