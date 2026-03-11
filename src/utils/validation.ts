@@ -22,10 +22,11 @@ export function validateShoresh(userInput: string, correctShoresh: string): bool
   return normalized === correctNormalized;
 }
 
+import { getBinyanVariants, getZmanVariants, getGufVariants } from '@/config/grammarConfig';
+
 // אימות בניין - משתמש בקונפיגורציה המרכזית
 export function validateBinyan(userInput: string, correctBinyan: string): boolean {
   const normalized = normalizeHebrew(userInput);
-  const { getBinyanVariants } = require('@/config/grammarConfig');
   const acceptedVariants = getBinyanVariants(correctBinyan);
   
   return acceptedVariants.some((variant: string) => 
@@ -36,7 +37,6 @@ export function validateBinyan(userInput: string, correctBinyan: string): boolea
 // אימות זמן - משתמש בקונפיגורציה המרכזית
 export function validateZman(userInput: string, correctZman: string): boolean {
   const normalized = normalizeHebrew(userInput);
-  const { getZmanVariants } = require('@/config/grammarConfig');
   const acceptedVariants = getZmanVariants(correctZman);
   
   return acceptedVariants.some((variant: string) => 
@@ -46,11 +46,9 @@ export function validateZman(userInput: string, correctZman: string): boolean {
 
 // אימות גוף - משתמש בקונפיגורציה המרכזית
 export function validateGuf(userInput: string, correctGuf: string | null): boolean {
-  // אם אין גוף נכון (שם פועל), תמיד נכון
   if (!correctGuf) return true;
   
   const normalized = normalizeHebrew(userInput);
-  const { getGufVariants } = require('@/config/grammarConfig');
   const acceptedVariants = getGufVariants(correctGuf);
   
   return acceptedVariants.some((variant: string) => 
